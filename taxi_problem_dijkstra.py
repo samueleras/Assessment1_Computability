@@ -106,7 +106,8 @@ def find_path_with_pickup_points(matrix, start, pickup_points, end):
     for pickup_point in pickup_points:
         sub_path = dijkstra(matrix, current_start, pickup_point)
         if sub_path is None:
-            return None  # No path found for this sub-segment
+            pass
+            #return None  # No path found for this sub-segment
         if full_path:
             # Remove the last node of the previous path to avoid duplication
             full_path.extend(sub_path[1:])
