@@ -6,54 +6,6 @@ import matplotlib.pyplot as plt
 from itertools import permutations
 import heapq
 
-# Load the CSV file (Adjacency Matrix)
-file_path = 'adjacency_matrix_26x26.csv'
-adj_matrix = pd.read_csv(file_path, delimiter=';', index_col=0)
-# Replace empty cells with NaN and convert to numeric
-adj_matrix.replace("", float('nan'), inplace=True)
-adj_matrix = adj_matrix.apply(pd.to_numeric, errors='coerce')
-
-
-# Load the CSV file (Adjacency Matrix for the Algorithm)
-file_path = 'adjacency_matrix_26x26.csv'
-matrix = pd.read_csv(file_path, delimiter=';', index_col=0)
-# Replace empty cells with NaN and convert to numeric
-matrix.replace("", float('inf'), inplace=True)
-matrix = matrix.apply(pd.to_numeric, errors='coerce')
-# Replace NaN values with float('inf') for the algorithm
-matrix.fillna(float('inf'), inplace=True)
-
-
-# Create a graph
-G = nx.Graph()
-
-# Add nodes and edges based on the adjacency matrix
-for i, row in adj_matrix.iterrows():
-    G.add_node(i)  # Add the postal area as a node
-    for j, distance in row.items():
-        if pd.notna(distance) and distance > 0:  # Valid distance
-            G.add_edge(i, j, weight=distance)  # Add an edge with the weight
-
-# Print available nodes for debugging
-print("Available nodes in the graph:", G.nodes)
-
-# Store the user selections
-selected_points = []
-labels = ['start', 'finish']  # Labels for selection
-current_label = 0  # To keep track of what the user is selecting
-selection_finished = False  # Flag to indicate selection is finished
-
-# Draw the graph using networkx
-pos = nx.spring_layout(G)  # Positions for all nodes
-fig, ax = plt.subplots(figsize=(12, 8))  # Set figure size
-nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=500, ax=ax)
-# Draw edge labels (distances)
-edge_labels = nx.get_edge_attributes(G, 'weight')
-nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
-plt.title('Select start, finish, and pickup/drop-off points')
-
-import heapq
-
 # Dijkstra's Algorithm for shortest path
 def dijkstra(matrix, start, end):
     n = len(matrix)  # Number of nodes
@@ -170,15 +122,6 @@ def on_key(event):
         print("Selection finished.")
         programm()  # Call the programm function to compute and visualize the route
 
-# Connect the key press event handler
-fig.canvas.mpl_connect('key_press_event', on_key)
-
-# Connect the click event handler
-fig.canvas.mpl_connect('button_press_event', on_click)
-
-# Show the plot and wait for user interaction
-plt.show()
-
 def get_selected_points(selected_points):
     # Validate selected points
     if len(selected_points) < 2:
@@ -245,3 +188,49 @@ def programm():
 
         plt.title('Optimal Route Visualization using A*', fontsize=14,bbox=dict(facecolor='green', alpha=0.5))
         plt.draw()  # Update the plot with the new edges
+
+# Load the CSV file (Adjacency Matrix)
+file_path = 'adjacency_matrix_26x26.csv'
+adj_matrix = pd.read_csv(file_path, delimiter=';', index_col=0)
+# Replace empty cells with NaN and convert to numeric
+adj_matrix.replace("", float('nan'), inplace=True)
+adj_matrix = adj_matrix.apply(pd.to_numeric, errors='coerce')
+
+
+# Load the CSV file (Adjacency Matrix for the Algorithm)
+file_path = 'adjacency_matrix_26x26.csv'
+matrix = pd.read_csv(file_path, delimiter=';', index_col=0)
+# Replace empty cells with NaN and convert to numeric
+matrix.replace("", float('inf'), inplace=True)
+matrix = matrix.apply(pd.to_numeric, errors='coerce')
+# Replace NaN values with float('inf') for the algorithm
+matrix.fillna(float('inf'), inplace=True)
+
+
+# Create a graph
+G = nx.Graph()
+
+# Add nodes and edges based on the adjacency matrix
+for i, row in adj_matrix.iterrows():
+    G.add_node(i)  # Add the postal area as a node
+    for j, distance in row.items():
+        if pd.notna(distance) and distance > 0:  # Valid distance
+            G.add_edge(i, j, weight=distance)  # Add an edge with the weight
+
+# Print available nodes for debugging
+print("Available nodes in the graph:", G.nodes)
+
+# Store the user selections
+selected_points = []
+labels = ['start', 'finish']  # Labels for selection
+current_label = 0  # To keep track of what the user is selecting
+selection_finished = False  # Flag to indicate selection is finished
+
+# Draw the graph using networkx
+pos = nx.spring_layout(G)  # Positions for all nodes
+fig, ax = plt.subplots(figsize=(12, 8))  # Set figure size
+nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=500, ax=ax)
+# Draw edge labels (distances)
+edge_labels = nx.get_edge_attributes(G, 'weight')
+nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
+plt.title('Select start, finish, and pickup/drop-off points')
