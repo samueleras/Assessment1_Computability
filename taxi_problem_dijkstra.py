@@ -231,6 +231,8 @@ selection_finished = False  # Flag to indicate selection is finished
 # Draw the graph using networkx
 pos = nx.spring_layout(G)  # Positions for all nodes
 fig, ax = plt.subplots(figsize=(12, 8))  # Set figure size
+fig.canvas.mpl_connect('button_press_event', on_click)
+fig.canvas.mpl_connect('key_press_event', on_key)
 nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=500, ax=ax)
 # Draw edge labels (distances)
 edge_labels = nx.get_edge_attributes(G, 'weight')
