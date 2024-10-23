@@ -189,8 +189,11 @@ def programm():
         plt.title('Optimal Route Visualization using A*', fontsize=14,bbox=dict(facecolor='green', alpha=0.5))
         plt.draw()  # Update the plot with the new edges
 
+import os
+current_folder_path = os.path.dirname(os.path.abspath(__file__))
+file_path = current_folder_path + '\\adjacency_matrix_26x26.csv'
+
 # Load the CSV file (Adjacency Matrix)
-file_path = 'adjacency_matrix_26x26.csv'
 adj_matrix = pd.read_csv(file_path, delimiter=';', index_col=0)
 # Replace empty cells with NaN and convert to numeric
 adj_matrix.replace("", float('nan'), inplace=True)
@@ -198,7 +201,6 @@ adj_matrix = adj_matrix.apply(pd.to_numeric, errors='coerce')
 
 
 # Load the CSV file (Adjacency Matrix for the Algorithm)
-file_path = 'adjacency_matrix_26x26.csv'
 matrix = pd.read_csv(file_path, delimiter=';', index_col=0)
 # Replace empty cells with NaN and convert to numeric
 matrix.replace("", float('inf'), inplace=True)
