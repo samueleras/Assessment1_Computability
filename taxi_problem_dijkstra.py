@@ -48,33 +48,48 @@ def reconstruct_path(came_from, current):
     path.reverse()
     return path
 
+def prims_algorithm(adj_matrix):
+    n = len(adj_matrix)  # Number of vertices in the graph
+    mst_edges = []  # List to store the edges of the MST
+    total_cost = 0  # To keep track of the total cost of the MST
+
+    # Priority queue to select the minimum weight edge
+    min_heap = [(0, 'A')]  # Start from vertex 'A' (or any vertex you want)
+    visited = set()  # To track visited vertices
+    prev_vertex = None  # To track the previous vertex for edge creation
+
+    while min_heap:
+        # Get the edge with the minimum weight
+        weight, u = heapq.heappop(min_heap)
+
+        if u in visited:
+            continue  # Skip if already visited
+
+        visited.add(u)  # Mark vertex as visited
+        total_cost += weight  # Update the total cost
+
+        if prev_vertex is not None:
+            # Append the edge only if it's not the starting node
+            mst_edges.append((prev_vertex, u, weight))
+
+        # Add all edges from the current vertex to the priority queue
+        for v in adj_matrix.columns:
+            if v not in visited:
+                edge_weight = adj_matrix.loc[u, v]  # Access using string labels
+                if pd.notna(edge_weight) and edge_weight > 0:  # Check if the edge is valid
+                    heapq.heappush(min_heap, (edge_weight, v))
+        
+        prev_vertex = u  # Update previous vertex for next iteration
+
+    return mst_edges, total_cost
 
 # Travelling Salesman Problem. Shortest path from A to B while traversing preselected nodes
 def find_shortest_path_with_pickup_points(matrix, start, pickup_points, end):
-    """     print('find_path: ' , matrix, start, pickup_points, end)
-    full_path = []
-    current_start = start
-
-    # Go through each pickup point in order
-    for pickup_point in pickup_points:
-        sub_path = dijkstra(matrix, current_start, pickup_point)
-        if sub_path is None:
-            pass
-            #return None  # No path found for this sub-segment
-        if full_path:
-            # Remove the last node of the previous path to avoid duplication
-            full_path.extend(sub_path[1:])
-        else:
-            full_path.extend(sub_path)
-        current_start = pickup_point
-    
-    # Finally, go from the last pickup point to the end
-    final_path = dijkstra(matrix, current_start, end)
-    if final_path is None:
-        return None
-    full_path.extend(final_path[1:])  # Append without duplicating the last pickup point
-
-    return full_path """
+    mst_edges, total_cost = prims_algorithm(matrix)
+    print("Edges in the Minimum Spanning Tree:")
+    for u, v, weight in mst_edges:
+        print(f"{u} -- {v} (Weight: {weight})")
+    print(f"Total cost of the Minimum Spanning Tree: {total_cost}")
     return None
 
 # Function to convert characters A-Z to indices 0-25
@@ -119,7 +134,8 @@ def calculate_path():
         
         # Decide whether to search for A->B or via several pickup points
         if pickup_indices:
-            #best_route = find_shortest_path_with_pickup_points(matrix, start_index, pickup_indices, end_index)
+            #best_route = 
+            find_shortest_path_with_pickup_points(adj_matrix_algo, start_index, pickup_indices, end_index)
             print("Traversing multiple pickup points not supported yet.")
             return  #has to be removed when feature is implemented
         else: 
@@ -190,17 +206,21 @@ def read_csv():
     global adj_matrix_graph, adj_matrix_algo
     # Load the CSV file (Adjacency Matrix)
     adj_matrix_graph = pd.read_csv(file_path, delimiter=';', index_col=0)
-    adj_matrix_algo = adj_matrix_graph.copy()
 
     # Replace empty cells with NaN and convert to numeric
     adj_matrix_graph.replace("", float('nan'), inplace=True)
     adj_matrix_graph = adj_matrix_graph.apply(pd.to_numeric, errors='coerce')
+    # Mirror the matrix to ensure symmetry
+    adj_matrix_graph = adj_matrix_graph.combine_first(adj_matrix_graph.transpose())
 
-    # Replace empty cells with NaN and convert to numeric
-    adj_matrix_algo.replace("", float('inf'), inplace=True)
-    adj_matrix_algo = adj_matrix_algo.apply(pd.to_numeric, errors='coerce')
+    # Copy matrix to use for algorithm
+    adj_matrix_algo = adj_matrix_graph.copy()
     # Replace NaN values with float('inf') for the algorithm
-    adj_matrix_algo.fillna(float('inf'), inplace=True)
+    #adj_matrix_algo.fillna(float('inf'), inplace=True)             #Do we really need this? Also works with nan
+
+
+    print(adj_matrix_graph)
+    print(adj_matrix_algo)
 
 def create_graph():
     global G
