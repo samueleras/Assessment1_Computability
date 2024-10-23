@@ -114,11 +114,12 @@ def find_shortest_path_with_pickup_points(matrix, selected_points):
         print(f"{u} -- {v} (Weight: {weight})")
     print(f"Total cost of the Minimum Spanning Tree: {total_cost}")
 
+    # Draw the MST into the graph
+    draw_route_into_graph(mst_edges, 'green', 'Minimum spanning tree')
     #Odd Degree vertices of MST
     num_vertices = len(adj_matrix_algo)
     odd_vertices = find_odd_degree_vertices(mst_edges, num_vertices)
     print("Vertices with odd degrees:", odd_vertices)
-
     return None
 
 # Function to convert characters A-Z to indices 0-25
@@ -276,6 +277,60 @@ def plot_graph():
     edge_labels = nx.get_edge_attributes(G, 'weight')
     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
     plt.title('Select start, finish, and pickup/drop-off points')
+    plt.draw()
+
+# Convert to edges that are drawable for networkx
+def convert_to_edges(route):
+    """
+    Convert different route formats into a list of edges in the format [(A, B), (B, C), (C, D)].
+    to be compatible with networkx
+
+    Parameters:
+    - route (list): A route that could be in one of the following formats:
+        1. [(A, B, weight), (B, C, weight)] - with weights
+        2. [(A, B), (B, C)] - without weights
+        3. ['A', 'B', 'C', 'D'] - a list of nodes
+
+    Returns:
+    - edges (list): A list of edges in the format [(A, B), (B, C), (C, D)].
+    """
+    if isinstance(route[0], tuple):
+        # Case 1 & 2: Route is a list of tuples
+        if len(route[0]) == 3:
+            # If tuples have 3 elements, they include weights, so ignore the weight
+            return [(edge[0], edge[1]) for edge in route]
+        else:
+            # If tuples have 2 elements, they are already in the correct format
+            return route
+    elif isinstance(route[0], str):
+        # Case 3: Route is a list of nodes (strings), convert to edges
+        return [(route[i], route[i + 1]) for i in range(len(route) - 1)]
+    else:
+        raise ValueError("Invalid route format")
+    
+# Draw a route onto an existing graph and highlighting it
+def draw_route_into_graph(route, color='red', plot_text=None):
+    """
+    Parameters:
+    - route (list): A route in one of the following formats:
+        1. [(A, B, weight), (B, C, weight)] - with weights
+        2. [(A, B), (B, C)] - without weights
+        3. ['A', 'B', 'C', 'D'] - as a list of nodes
+    - color (str): The color to use for the highlighted route (default is 'red').
+    - plot_text (str): Optional title for the plot (default is None).
+    """
+    route = convert_to_edges(route)
+
+    # Clear the current axes and redraw the graph
+    ax.clear()  # Clear the axes before redrawing
+    nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=500, ax=ax)
+    # Draw edge labels (distances)
+    edge_labels = nx.get_edge_attributes(G, 'weight')
+    # Highlight the specified route (edges only) with the chosen color
+    nx.draw_networkx_edges(G, pos, edgelist=route, edge_color=color, width=2.5, ax=ax)
+    # Add an optional plot title if specified
+    if plot_text:
+        ax.set_title(plot_text)
     plt.draw()
 
 def create_gui():
