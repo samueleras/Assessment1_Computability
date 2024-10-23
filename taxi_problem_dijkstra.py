@@ -48,13 +48,17 @@ def reconstruct_path(came_from, current):
     path.reverse()
     return path
 
-def prims_algorithm(adj_matrix):
-    n = len(adj_matrix)  # Number of vertices in the graph
+def prims_algorithm(adj_matrix, selected_points):
+    # Extract the submatrix for the selected points
+    matrix_selected_points = adj_matrix.loc[selected_points, selected_points]
+
+    n = len(matrix_selected_points)  # Number of vertices in the graph
     mst_edges = []  # List to store the edges of the MST
     total_cost = 0  # To keep track of the total cost of the MST
 
-    # Priority queue to select the minimum weight edge
-    min_heap = [(0, 'A')]  # Start from vertex 'A' (or any vertex you want)
+    # Start from the first vertex in the selected points
+    start_vertex = selected_points[0]
+    min_heap = [(0, start_vertex)]  # Start from the first selected vertex
     visited = set()  # To track visited vertices
     prev_vertex = None  # To track the previous vertex for edge creation
 
@@ -73,9 +77,9 @@ def prims_algorithm(adj_matrix):
             mst_edges.append((prev_vertex, u, weight))
 
         # Add all edges from the current vertex to the priority queue
-        for v in adj_matrix.columns:
+        for v in matrix_selected_points.columns:
             if v not in visited:
-                edge_weight = adj_matrix.loc[u, v]  # Access using string labels
+                edge_weight = matrix_selected_points.loc[u, v]  # Access using string labels
                 if pd.notna(edge_weight) and edge_weight > 0:  # Check if the edge is valid
                     heapq.heappush(min_heap, (edge_weight, v))
         
@@ -100,10 +104,10 @@ def find_odd_degree_vertices(mst_edges, num_vertices):
     return odd_degree_vertices
 
 # Travelling Salesman Problem. Shortest path from A to B while traversing preselected nodes
-def find_shortest_path_with_pickup_points(matrix, start, pickup_points, end):
+def find_shortest_path_with_pickup_points(matrix, selected_points):
 
     #Build MST
-    mst_edges, total_cost = prims_algorithm(matrix)
+    mst_edges, total_cost = prims_algorithm(matrix, selected_points)
     print("MST edges:", mst_edges)
     print("Edges in the Minimum Spanning Tree:")
     for u, v, weight in mst_edges:
@@ -160,7 +164,7 @@ def calculate_path():
         # Decide whether to search for A->B or via several pickup points
         if pickup_indices:
             #best_route = 
-            find_shortest_path_with_pickup_points(adj_matrix_algo, start_index, pickup_indices, end_index)
+            find_shortest_path_with_pickup_points(adj_matrix_algo, selected_points)
             print("Traversing multiple pickup points not supported yet.")
             return  #has to be removed when feature is implemented
         else: 
