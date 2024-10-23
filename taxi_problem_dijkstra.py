@@ -3,11 +3,10 @@ import networkx as nx
 import matplotlib
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
-from itertools import permutations
 import heapq
 
-# Dijkstra's Algorithm for shortest path
-def dijkstra(matrix, start, end):
+# Dijkstra's Algorithm for shortest path from point A to B without selected pickup points in between
+def find_shortest_path_dijkstras(matrix, start, end):
     n = len(matrix)  # Number of nodes
     open_set = []
     heapq.heappush(open_set, (0, start))  # Use g_score as priority
@@ -48,9 +47,9 @@ def reconstruct_path(came_from, current):
     return path
 
 
-# Function to handle paths that go through multiple pickup points
-def find_path_with_pickup_points(matrix, start, pickup_points, end):
-    print('find_path: ' , matrix, start, pickup_points, end)
+# Travelling Salesman Problem. Shortest path from A to B while traversing preselected nodes
+def find_shortest_path_with_pickup_points(matrix, start, pickup_points, end):
+    """     print('find_path: ' , matrix, start, pickup_points, end)
     full_path = []
     current_start = start
 
@@ -73,7 +72,8 @@ def find_path_with_pickup_points(matrix, start, pickup_points, end):
         return None
     full_path.extend(final_path[1:])  # Append without duplicating the last pickup point
 
-    return full_path
+    return full_path """
+    return None
 
 # Function to convert characters A-Z to indices 0-25
 def char_to_index(char):
@@ -82,6 +82,80 @@ def char_to_index(char):
 # Function to convert indices 0-25 to characters A-Z
 def index_to_char(index_list):
     return [chr(index + ord('A')) for index in index_list]
+
+def get_selected_points(selected_points):
+    # Validate selected points
+    if len(selected_points) < 2:
+        print("Error: Please select at least a start and a finish point.")
+    else:
+        start_point = selected_points[0]
+        end_point = selected_points[1]
+        pickup_points = selected_points[2:]  # Remaining points are pickup/drop-off points
+    
+        print(f"Start point: {start_point}")
+        print(f"End point: {end_point}")
+        if pickup_points:
+            print(f"Pickup/drop-off points: {pickup_points}")
+        else:
+            print("No pickup/drop-off points selected.")
+    
+        # Validate input points
+        all_points = [start_point] + pickup_points + [end_point]
+        for point in all_points:
+            if point not in G.nodes:
+                print(f"Warning: Node '{point}' is not in the graph.")
+                exit(1)  # Exit if an invalid node is found
+                
+        # Convert characters to indices
+        start_point = char_to_index(start_point)
+        pickup_points = [char_to_index(char) for char in pickup_points]
+        end_point = char_to_index(end_point)
+        
+        return start_point, end_point, pickup_points
+
+def programm():
+        start_index, end_index, pickup_indices = get_selected_points(selected_points)
+        
+        # Decide whether to search for A->B or via several pickup points
+        if pickup_indices:
+            best_route = find_shortest_path_with_pickup_points(matrix, start_index, pickup_indices, end_index)
+        else: 
+            best_route = find_shortest_path_dijkstras(matrix, start_index, end_index)
+
+        print(best_route)
+        best_route = index_to_char(best_route)
+        
+        print("Best route found:", " -> ".join(best_route))
+        #print("Minimum distance:", min_distance)
+
+        # Clear the current axes and redraw the graph
+        ax.clear()  # Clear the axes before redrawing
+
+        # Redraw the graph with the new route
+        nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=500, ax=ax)
+        
+        # Highlight the best route
+        route_edges = [(best_route[i], best_route[i + 1]) for i in range(len(best_route) - 1)]
+        nx.draw_networkx_edges(G, pos, edgelist=route_edges, width=5, edge_color='orange')
+
+        # Draw edge labels (distances)
+        edge_labels = nx.get_edge_attributes(G, 'weight')
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
+        
+        # Fixed positions in axes coordinates
+        plt.text(0.8, -0.05, f"Best route found: {' -> '.join(best_route)}", 
+                 horizontalalignment='center', verticalalignment='center', fontsize=12, 
+                 bbox=dict(facecolor='lightgray', alpha=0.5), transform=ax.transAxes)
+        
+        # plt.text(0.8, -0.1, f"Minimum distance: {min_distance}", 
+        #          horizontalalignment='center', verticalalignment='center', fontsize=12, 
+        #          bbox=dict(facecolor='lightgray', alpha=0.5), transform=ax.transAxes)
+
+        plt.title('Optimal Route Visualization', fontsize=14,bbox=dict(facecolor='green', alpha=0.5))
+        plt.draw()  # Update the plot with the new edges
+
+
+### Event Hanlding ###
 
 # Function to handle click events
 def on_click(event):
@@ -122,72 +196,8 @@ def on_key(event):
         print("Selection finished.")
         programm()  # Call the programm function to compute and visualize the route
 
-def get_selected_points(selected_points):
-    # Validate selected points
-    if len(selected_points) < 2:
-        print("Error: Please select at least a start and a finish point.")
-    else:
-        start_point = selected_points[0]
-        end_point = selected_points[1]
-        pickup_points = selected_points[2:]  # Remaining points are pickup/drop-off points
-    
-        print(f"Start point: {start_point}")
-        print(f"End point: {end_point}")
-        if pickup_points:
-            print(f"Pickup/drop-off points: {pickup_points}")
-        else:
-            print("No pickup/drop-off points selected.")
-    
-        # Validate input points
-        all_points = [start_point] + pickup_points + [end_point]
-        for point in all_points:
-            if point not in G.nodes:
-                print(f"Warning: Node '{point}' is not in the graph.")
-                exit(1)  # Exit if an invalid node is found
-                
-        # Convert characters to indices
-        start_point = char_to_index(start_point)
-        pickup_points = [char_to_index(char) for char in pickup_points]
-        end_point = char_to_index(end_point)
-        
-        return start_point, end_point, pickup_points
 
-def programm():
-        start_index, end_index, pickup_indices = get_selected_points(selected_points)
-        
-        # Find the full path from start -> pickup_points -> end
-        best_route = find_path_with_pickup_points(matrix, start_index, pickup_indices, end_index)
-        print(best_route)
-        best_route = index_to_char(best_route)
-        
-        print("Best route found:", " -> ".join(best_route))
-        #print("Minimum distance:", min_distance)
-
-        # Clear the current axes and redraw the graph
-        ax.clear()  # Clear the axes before redrawing
-
-        # Redraw the graph with the new route
-        nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=500, ax=ax)
-        
-        # Highlight the best route
-        route_edges = [(best_route[i], best_route[i + 1]) for i in range(len(best_route) - 1)]
-        nx.draw_networkx_edges(G, pos, edgelist=route_edges, width=5, edge_color='orange')
-
-        # Draw edge labels (distances)
-        edge_labels = nx.get_edge_attributes(G, 'weight')
-        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
-        
-        # Fixed positions in axes coordinates
-        plt.text(0.8, -0.05, f"Best route found: {' -> '.join(best_route)}", 
-                 horizontalalignment='center', verticalalignment='center', fontsize=12, 
-                 bbox=dict(facecolor='lightgray', alpha=0.5), transform=ax.transAxes)
-        
-        # plt.text(0.8, -0.1, f"Minimum distance: {min_distance}", 
-        #          horizontalalignment='center', verticalalignment='center', fontsize=12, 
-        #          bbox=dict(facecolor='lightgray', alpha=0.5), transform=ax.transAxes)
-
-        plt.title('Optimal Route Visualization using A*', fontsize=14,bbox=dict(facecolor='green', alpha=0.5))
-        plt.draw()  # Update the plot with the new edges
+### Program sequence ###
 
 import os
 current_folder_path = os.path.dirname(os.path.abspath(__file__))
