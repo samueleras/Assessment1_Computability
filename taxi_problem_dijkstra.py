@@ -1,9 +1,11 @@
 import pandas as pd
 import networkx as nx
-import matplotlib
-matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import heapq
+from tkinter import Tk, Button, Label, Frame, filedialog
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import os
+import shutil
 
 # Dijkstra's Algorithm for shortest path from point A to B without selected pickup points in between
 def find_shortest_path_dijkstras(matrix, start, end):
@@ -84,36 +86,35 @@ def index_to_char(index_list):
     return [chr(index + ord('A')) for index in index_list]
 
 def get_selected_points(selected_points):
-    # Validate selected points
-    if len(selected_points) < 2:
-        print("Error: Please select at least a start and a finish point.")
-    else:
-        start_point = selected_points[0]
-        end_point = selected_points[1]
-        pickup_points = selected_points[2:]  # Remaining points are pickup/drop-off points
-    
-        print(f"Start point: {start_point}")
-        print(f"End point: {end_point}")
-        if pickup_points:
-            print(f"Pickup/drop-off points: {pickup_points}")
-        else:
-            print("No pickup/drop-off points selected.")
-    
-        # Validate input points
-        all_points = [start_point] + pickup_points + [end_point]
-        for point in all_points:
-            if point not in G.nodes:
-                print(f"Warning: Node '{point}' is not in the graph.")
-                exit(1)  # Exit if an invalid node is found
-                
-        # Convert characters to indices
-        start_point = char_to_index(start_point)
-        pickup_points = [char_to_index(char) for char in pickup_points]
-        end_point = char_to_index(end_point)
-        
-        return start_point, end_point, pickup_points
+    start_point = selected_points[0]
+    end_point = selected_points[1]
+    pickup_points = selected_points[2:]  # Remaining points are pickup/drop-off points
 
-def programm():
+    print(f"Start point: {start_point}")
+    print(f"End point: {end_point}")
+    if pickup_points:
+        print(f"Pickup/drop-off points: {pickup_points}")
+    else:
+        print("No pickup/drop-off points selected.")
+
+    # Validate input points
+    all_points = [start_point] + pickup_points + [end_point]
+    for point in all_points:
+        if point not in G.nodes:
+            print(f"Warning: Node '{point}' is not in the graph.")
+            exit(1)  # Exit if an invalid node is found
+            
+    # Convert characters to indices
+    start_point = char_to_index(start_point)
+    pickup_points = [char_to_index(char) for char in pickup_points]
+    end_point = char_to_index(end_point)
+    
+    return start_point, end_point, pickup_points
+
+def calculate_path():
+        if not selected_points: 
+            print("Error: Please select at least a start and a finish point.")
+            return
         start_index, end_index, pickup_indices = get_selected_points(selected_points)
         
         # Decide whether to search for A->B or via several pickup points
@@ -122,7 +123,7 @@ def programm():
             print("Traversing multiple pickup points not supported yet.")
             return  #has to be removed when feature is implemented
         else: 
-            best_route = find_shortest_path_dijkstras(matrix, start_index, end_index)
+            best_route = find_shortest_path_dijkstras(adj_matrix_algo, start_index, end_index)
 
         print(best_route)
         best_route = index_to_char(best_route)
@@ -159,9 +160,9 @@ def initialize_variables():
     labels= ['start', 'finish']  # Labels for selection
     current_label = 0  # To keep track of what the user is selecting
     selection_finished = False  # Flag to indicate selection is finished
-    print("Selection reset.")
 
 def reset_plot():
+    initialize_variables()
     # Clear the current axes and redraw the graph
     ax.clear()  # Clear the axes before redrawing
     nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=500, ax=ax)
@@ -171,9 +172,98 @@ def reset_plot():
     plt.title('Select start, finish, and pickup/drop-off points')
     plt.draw()
 
+def upload_csv():
+    # Show file dialog to select the CSV file
+    selected_file = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
+    # If no file is selected, return
+    if not selected_file:
+        return None
+    # Overwrite currently used matrix
+    shutil.copy2(selected_file, file_path)
+    print(f"Saved file.")
+    initialize_variables()  #Resets all graph related variables
+    read_csv()
+    create_graph()
+    plot_graph()
+
+def read_csv():
+    global adj_matrix_graph, adj_matrix_algo
+    # Load the CSV file (Adjacency Matrix)
+    adj_matrix_graph = pd.read_csv(file_path, delimiter=';', index_col=0)
+    adj_matrix_algo = adj_matrix_graph.copy()
+
+    # Replace empty cells with NaN and convert to numeric
+    adj_matrix_graph.replace("", float('nan'), inplace=True)
+    adj_matrix_graph = adj_matrix_graph.apply(pd.to_numeric, errors='coerce')
+
+    # Replace empty cells with NaN and convert to numeric
+    adj_matrix_algo.replace("", float('inf'), inplace=True)
+    adj_matrix_algo = adj_matrix_algo.apply(pd.to_numeric, errors='coerce')
+    # Replace NaN values with float('inf') for the algorithm
+    adj_matrix_algo.fillna(float('inf'), inplace=True)
+
+def create_graph():
+    global G
+    # Create a graph
+    G = nx.Graph()
+
+    # Add nodes and edges based on the adjacency matrix
+    for i, row in adj_matrix_graph.iterrows():
+        G.add_node(i)  # Add the postal area as a node
+        for j, distance in row.items():
+            if pd.notna(distance) and distance > 0:  # Valid distance
+                G.add_edge(i, j, weight=distance)  # Add an edge with the weight
+
+    # Print available nodes for debugging
+    print("Available nodes in the graph:", G.nodes)
+
+# Function to plot the graph
+def plot_graph():
+    ax.clear()
+    global pos
+    pos = nx.spring_layout(G)  # Positions for all nodes
+    nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=500, ax=ax)
+    # Draw edge labels (distances)
+    edge_labels = nx.get_edge_attributes(G, 'weight')
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
+    plt.title('Select start, finish, and pickup/drop-off points')
+    plt.draw()
+
+def create_gui():
+    root = Tk()
+    root.title("Computability and Optimisation Assignment 1")
+
+    # Create a frame for the plot
+    global frame, canvas
+    frame = Frame(root)
+    frame.pack(pady=20)
+
+    # Create buttons
+    calculate_button = Button(root, text="Calculate Path (Enter)", command=calculate_path)
+    calculate_button.pack(side='left', padx=5, pady=5)
+
+    reset_button = Button(root, text="Reset Graph (Backspace)", command=reset_plot)
+    reset_button.pack(side='left', padx=5, pady=5) 
+
+    upload_button = Button(root, text="Upload CSV (U)", command=upload_csv)
+    upload_button.pack(side='left', padx=5, pady=5)
+
+    global fig, ax
+    fig, ax = plt.subplots(figsize=(12, 8))  # Set figure size
+    fig.canvas.mpl_connect('button_press_event', on_click)
+    fig.canvas.mpl_connect('key_press_event', on_key)
+    canvas = FigureCanvasTkAgg(fig, master=frame)
+    canvas.draw()  # Draw the canvas
+    canvas.get_tk_widget().pack()
+
+    plot_graph()
+
+    # Run the GUI loop
+    root.mainloop()
 
 
-### Event Hanlding ###
+
+### EVENT HANDLING ###
 
 # Function to handle click events
 def on_click(event):
@@ -212,54 +302,29 @@ def on_key(event):
         global selection_finished
         selection_finished = True  # Set the flag to indicate selection is finished
         print("Selection finished.")
-        programm()  # Call the programm function to compute and visualize the route
+        calculate_path()  # Call the programm function to compute and visualize the route
     elif event.key == 'backspace':
-        initialize_variables() #Reset current selections
-        reset_plot()
+        reset_plot() # Reset current selections and reset plot
+    elif event.key == 'u':
+        upload_csv() # Upload csv
 
 
 
-### Program initiation ###
 
-import os
+### MAIN ###
+
 #Define path to csv
 current_folder_path = os.path.dirname(os.path.abspath(__file__))
 file_path = current_folder_path + '\\adjacency_matrix_26x26.csv'
 
-# Load the CSV file (Adjacency Matrix)
-adj_matrix = pd.read_csv(file_path, delimiter=';', index_col=0)
-# Replace empty cells with NaN and convert to numeric
-adj_matrix.replace("", float('nan'), inplace=True)
-adj_matrix = adj_matrix.apply(pd.to_numeric, errors='coerce')
+#Initializes variables in function to be able to reset them with it
+initialize_variables()  
 
-# Load the CSV file (Adjacency Matrix for the Algorithm)
-matrix = pd.read_csv(file_path, delimiter=';', index_col=0)
-# Replace empty cells with NaN and convert to numeric
-matrix.replace("", float('inf'), inplace=True)
-matrix = matrix.apply(pd.to_numeric, errors='coerce')
-# Replace NaN values with float('inf') for the algorithm
-matrix.fillna(float('inf'), inplace=True)
+#Read file and initialize adjacency matrices
+read_csv()
 
-# Create a graph
-G = nx.Graph()
+#Create the graph from the adjecancy matrix
+create_graph()
 
-# Add nodes and edges based on the adjacency matrix
-for i, row in adj_matrix.iterrows():
-    G.add_node(i)  # Add the postal area as a node
-    for j, distance in row.items():
-        if pd.notna(distance) and distance > 0:  # Valid distance
-            G.add_edge(i, j, weight=distance)  # Add an edge with the weight
-
-# Print available nodes for debugging
-print("Available nodes in the graph:", G.nodes)
-
-#Initialize variables
-initialize_variables()
-
-# Draw the graph using networkx
-pos = nx.spring_layout(G)  # Positions for all nodes
-fig, ax = plt.subplots(figsize=(12, 8))  # Set figure size
-fig.canvas.mpl_connect('button_press_event', on_click)
-fig.canvas.mpl_connect('key_press_event', on_key)
-reset_plot()
-plt.show()
+#Run gui and render plot inside it
+create_gui()
