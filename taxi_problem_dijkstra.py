@@ -83,13 +83,38 @@ def prims_algorithm(adj_matrix):
 
     return mst_edges, total_cost
 
+def find_odd_degree_vertices(mst_edges, num_vertices):
+    #degree counter initialized to 0 for each vertex
+    vertex_degree = [0] * num_vertices
+    
+    mst_edges_numeric = [(ord(u) - ord('A'), ord(v) - ord('A')) for u, v, weight in mst_edges]
+
+    # Iterate through all edges in the MST and count the degree of each vertex
+    for u, v in mst_edges_numeric:
+        vertex_degree[u] += 1
+        vertex_degree[v] += 1
+    
+    # Identify vertices with odd degrees
+    odd_degree_vertices = [vertex for vertex in range(num_vertices) if vertex_degree[vertex] % 2 == 1]
+    
+    return odd_degree_vertices
+
 # Travelling Salesman Problem. Shortest path from A to B while traversing preselected nodes
 def find_shortest_path_with_pickup_points(matrix, start, pickup_points, end):
+
+    #Build MST
     mst_edges, total_cost = prims_algorithm(matrix)
+    print("MST edges:", mst_edges)
     print("Edges in the Minimum Spanning Tree:")
     for u, v, weight in mst_edges:
         print(f"{u} -- {v} (Weight: {weight})")
     print(f"Total cost of the Minimum Spanning Tree: {total_cost}")
+
+    #Odd Degree vertices of MST
+    num_vertices = len(adj_matrix_algo)
+    odd_vertices = find_odd_degree_vertices(mst_edges, num_vertices)
+    print("Vertices with odd degrees:", odd_vertices)
+
     return None
 
 # Function to convert characters A-Z to indices 0-25
