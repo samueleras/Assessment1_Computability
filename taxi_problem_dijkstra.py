@@ -309,7 +309,7 @@ def convert_to_edges(route):
         raise ValueError("Invalid route format")
     
 # Draw a route onto an existing graph and highlighting it
-def draw_route_into_graph(route, color='red', plot_text=None):
+def draw_route_into_graph(route, color='red', plot_text=None, draw_labels=True):
     """
     Parameters:
     - route (list): A route in one of the following formats:
@@ -318,6 +318,7 @@ def draw_route_into_graph(route, color='red', plot_text=None):
         3. ['A', 'B', 'C', 'D'] - as a list of nodes
     - color (str): The color to use for the highlighted route (default is 'red').
     - plot_text (str): Optional title for the plot (default is None).
+    - draw_labels (bool): Optional draw the weights to the edges (default is True).
     """
     route = convert_to_edges(route)
 
@@ -326,8 +327,10 @@ def draw_route_into_graph(route, color='red', plot_text=None):
     nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=500, ax=ax)
     # Draw edge labels (distances)
     edge_labels = nx.get_edge_attributes(G, 'weight')
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8, ax=ax)
     # Highlight the specified route (edges only) with the chosen color
     nx.draw_networkx_edges(G, pos, edgelist=route, edge_color=color, width=2.5, ax=ax)
+
     # Add an optional plot title if specified
     if plot_text:
         ax.set_title(plot_text)
