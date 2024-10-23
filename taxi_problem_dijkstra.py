@@ -118,7 +118,9 @@ def programm():
         
         # Decide whether to search for A->B or via several pickup points
         if pickup_indices:
-            best_route = find_shortest_path_with_pickup_points(matrix, start_index, pickup_indices, end_index)
+            #best_route = find_shortest_path_with_pickup_points(matrix, start_index, pickup_indices, end_index)
+            print("Traversing multiple pickup points not supported yet.")
+            return  #has to be removed when feature is implemented
         else: 
             best_route = find_shortest_path_dijkstras(matrix, start_index, end_index)
 
@@ -146,13 +148,29 @@ def programm():
         plt.text(0.8, -0.05, f"Best route found: {' -> '.join(best_route)}", 
                  horizontalalignment='center', verticalalignment='center', fontsize=12, 
                  bbox=dict(facecolor='lightgray', alpha=0.5), transform=ax.transAxes)
-        
-        # plt.text(0.8, -0.1, f"Minimum distance: {min_distance}", 
-        #          horizontalalignment='center', verticalalignment='center', fontsize=12, 
-        #          bbox=dict(facecolor='lightgray', alpha=0.5), transform=ax.transAxes)
 
         plt.title('Optimal Route Visualization', fontsize=14,bbox=dict(facecolor='green', alpha=0.5))
         plt.draw()  # Update the plot with the new edges
+
+
+def initialize_variables():
+    global selected_points, labels, current_label, selection_finished
+    selected_points = []
+    labels= ['start', 'finish']  # Labels for selection
+    current_label = 0  # To keep track of what the user is selecting
+    selection_finished = False  # Flag to indicate selection is finished
+    print("Selection reset.")
+
+def reset_plot():
+    # Clear the current axes and redraw the graph
+    ax.clear()  # Clear the axes before redrawing
+    nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=500, ax=ax)
+    # Draw edge labels (distances)
+    edge_labels = nx.get_edge_attributes(G, 'weight')
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
+    plt.title('Select start, finish, and pickup/drop-off points')
+    plt.draw()
+
 
 
 ### Event Hanlding ###
@@ -195,11 +213,16 @@ def on_key(event):
         selection_finished = True  # Set the flag to indicate selection is finished
         print("Selection finished.")
         programm()  # Call the programm function to compute and visualize the route
+    elif event.key == 'backspace':
+        initialize_variables() #Reset current selections
+        reset_plot()
 
 
-### Program sequence ###
+
+### Program initiation ###
 
 import os
+#Define path to csv
 current_folder_path = os.path.dirname(os.path.abspath(__file__))
 file_path = current_folder_path + '\\adjacency_matrix_26x26.csv'
 
@@ -209,7 +232,6 @@ adj_matrix = pd.read_csv(file_path, delimiter=';', index_col=0)
 adj_matrix.replace("", float('nan'), inplace=True)
 adj_matrix = adj_matrix.apply(pd.to_numeric, errors='coerce')
 
-
 # Load the CSV file (Adjacency Matrix for the Algorithm)
 matrix = pd.read_csv(file_path, delimiter=';', index_col=0)
 # Replace empty cells with NaN and convert to numeric
@@ -217,7 +239,6 @@ matrix.replace("", float('inf'), inplace=True)
 matrix = matrix.apply(pd.to_numeric, errors='coerce')
 # Replace NaN values with float('inf') for the algorithm
 matrix.fillna(float('inf'), inplace=True)
-
 
 # Create a graph
 G = nx.Graph()
@@ -232,20 +253,13 @@ for i, row in adj_matrix.iterrows():
 # Print available nodes for debugging
 print("Available nodes in the graph:", G.nodes)
 
-# Store the user selections
-selected_points = []
-labels = ['start', 'finish']  # Labels for selection
-current_label = 0  # To keep track of what the user is selecting
-selection_finished = False  # Flag to indicate selection is finished
+#Initialize variables
+initialize_variables()
 
 # Draw the graph using networkx
 pos = nx.spring_layout(G)  # Positions for all nodes
 fig, ax = plt.subplots(figsize=(12, 8))  # Set figure size
 fig.canvas.mpl_connect('button_press_event', on_click)
 fig.canvas.mpl_connect('key_press_event', on_key)
-nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=500, ax=ax)
-# Draw edge labels (distances)
-edge_labels = nx.get_edge_attributes(G, 'weight')
-nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
-plt.title('Select start, finish, and pickup/drop-off points')
+reset_plot()
 plt.show()
