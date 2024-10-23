@@ -31,7 +31,9 @@ for area in postal_areas:
     matrix.append(row)
 
 # Define the file path where you want to save the CSV file
-file_path = 'adjacency_matrix_26x26.csv'
+import os
+current_folder_path = os.path.dirname(os.path.abspath(__file__))
+file_path = current_folder_path + '\\adjacency_matrix_26x26.csv'
 
 # Write the adjacency matrix to a CSV file
 with open(file_path, 'w', newline='') as csv_file:
