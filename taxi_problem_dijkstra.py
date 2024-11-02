@@ -57,6 +57,7 @@ def reconstruct_path(came_from, current):
 # 4. Combine MST and Matching
 # 5. Find Eulerian Curcuit
 # 6. Convert Eulerian Curcuit to Hamiltonian Circuit
+# 7. Output the Result (hamiltonian circuit)
 def prims_algorithm(adj_matrix, selected_points):
     # Extract the submatrix for the selected points
     matrix_selected_points = adj_matrix.loc[selected_points, selected_points]
