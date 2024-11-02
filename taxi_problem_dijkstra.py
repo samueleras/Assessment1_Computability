@@ -128,7 +128,7 @@ def char_to_index(char):
 
 # Function to convert indices 0-25 to characters A-Z
 def index_to_char(index_list):
-    if len(index_list) == 1:
+    if type(index_list) == int:
         return chr(index_list + ord('A'))
     else:
         return [chr(index + ord('A')) for index in index_list]
