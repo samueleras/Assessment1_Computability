@@ -49,6 +49,14 @@ def reconstruct_path(came_from, current):
     path.reverse()
     return path
 
+
+# Crisofodis Algorithm break down: 
+# 1. Construct MST: we done it with prims algorithm
+# 2. Identify ODD-Degree Nodes
+# 3. Construct a Minimum Weight perfect matching: done with greedy approach, should be changed into Hungarian
+# 4. Combine MST and Matching
+# 5. Find Eulerian Curcuit
+# 6. Convert Eulerian Curcuit to Hamiltonian Circuit
 def prims_algorithm(adj_matrix, selected_points):
     # Extract the submatrix for the selected points
     matrix_selected_points = adj_matrix.loc[selected_points, selected_points]
@@ -106,7 +114,9 @@ def find_odd_degree_vertices(mst_edges, num_vertices):
     return odd_degree_vertices
 
 # use of greedy algorithm
-# hungarian algorithm would be better i think
+# hungarian algorithm would be better i think or modified dijerkas
+# but for now fine
+# TODO
 def minimum_cost_perfect_matching(matrix, odd_vertices):
     # List to store the matched pairs
     matching = []
@@ -134,8 +144,6 @@ def minimum_cost_perfect_matching(matrix, odd_vertices):
             matched.add(v)
     
     return matching
-
-
 
 # Williamson, D. P., & Shmoys, D. B. (2011). The Design of Approximation Algorithms. Cambridge University Press.
 def build_euler_tour(matrix, start):
@@ -172,6 +180,8 @@ def find_circular_route(matrix, selected_points):
     print("Euler tour: ", euler_tour)
 
     return None
+
+
 
 # Function to convert characters A-Z to indices 0-25
 def char_to_index(char):
