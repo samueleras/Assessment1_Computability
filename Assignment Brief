@@ -1,0 +1,24 @@
+Assessment task details:
+
+A taxi rank has been operating to a particular area for some time and the dispatcher has started to wonder whether the routes she is providing the drivers are the most optimum. She decides to try some type of analysis on the problem. Her initial steps are to label each of the 26 postal areas around the town with a letter of the alphabet and then, after many weeks of recording the data, list the respective distances between the drop off points for each area. Some points share a boundary and have only 100 metres (1 unit) distance apart whereas others are at the opposite ends of a street and can be as far as 10 kilometres (100 units) apart. The dispatcher has collated all the information and decides to present it in a table. She realises that the table will have symmetry since it is the same distance from point A to point B as it is from point B to point A. Therefore, not all the cells of the table will need to be populated but can be deduced from this symmetry. The table she produced is attached.
+However, despite her best efforts to determine a strategy for optimising the route she realises that the problem is more difficult than she originally thought since the number of possibilities available as routes becomes too cumbersome to maintain manually. Consequently, knowing that you are skilled computer programmer who has experience in this area, she asks whether you would be able to help.
+Your initial impression is that this is a network traversal problem and a path finding algorithm will suffice for the needs of routing from point A to B via several pickups and drop-offs. However, to complicate matters, the taxi rank operates a town circular service for disabled children all to be picked up and transported to their local school. The minibus travels through every district around the town making pickups before delivering to the school and then returning to the taxi rank. The dispatcher wishes to know what the best order of pickups should be for this service.
+You immediately realise that this is a different form of network traversal and set about providing an automated solution. You appreciate that the drop off points may change over time as customers request or opt out of the service. Consequently, you determine that a means of uploading a new adjacency matrix via an external file or database would be desirable. Furthermore, though not strictly mandatory, some form of graphical output would be beneficial.
+
+
+There are many possible solutions to the problem and all will be marked according to their merit, application, and implementation.
+As an example, the process of solving the problem using a classic strategy involves performing multiple steps which can be broken down as below.
+Steps:
+1.	Design appropriate structures for internally storing an adjacency matrix. 
+2.	Upload the data from an external source (e.g. a JSON file).
+3.	Allow manual entry of a starting point and a finishing point, with several pickup and drop-off points along the route.
+4.	Use a suitable algorithm to construct a minimum route that traverses all the pickup and drop-off points from start to finish.
+5.	Use a suitable algorithm to construct a Minimum Spanning Tree (MST).
+6.	Identify all vertices in the MST that have an odd degree.
+7.	Use a suitable algorithm to find a Minimum Weight Perfect Matching (MWPM).
+8.	Combine the edges from the MST and MWPM to form a multigraph. Use the combined graph to find an unrefined circuit through all edges.
+9.	Convert this circuit into a circuit passing through all vertices once by bypassing already visited vertices, while maintaining the order of visitation. Output this route, to screen and/or to file.
+10.	Represent the output graphically.
+
+A total of 10 marks will be attributed for successful completion of each of the steps, leading to a total of 100 marks.
+A similar strategy to this will be employed for any other methods attempted.
