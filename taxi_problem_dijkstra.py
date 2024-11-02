@@ -128,7 +128,10 @@ def char_to_index(char):
 
 # Function to convert indices 0-25 to characters A-Z
 def index_to_char(index_list):
-    return [chr(index + ord('A')) for index in index_list]
+    if len(index_list) == 1:
+        return chr(index_list + ord('A'))
+    else:
+        return [chr(index + ord('A')) for index in index_list]
 
 def get_selected_points(selected_points):
     start_point = selected_points[0]
@@ -171,12 +174,12 @@ def calculate_path():
         else: 
             best_route = find_shortest_path_dijkstras(adj_matrix_algo, start_index, end_index)
 
-        print(best_route)
         best_route = index_to_char(best_route)
-        
         print("Best route found:", " -> ".join(best_route))
         #print("Minimum distance:", min_distance)
 
+        draw_route_into_graph(best_route,'red', f"Shortest Path from {index_to_char(start_index)} to {index_to_char(end_index)}")
+        return
         # Clear the current axes and redraw the graph
         ax.clear()  # Clear the axes before redrawing
 
