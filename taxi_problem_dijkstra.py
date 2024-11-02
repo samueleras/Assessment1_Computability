@@ -106,20 +106,22 @@ def find_odd_degree_vertices(mst_edges, num_vertices):
 # Travelling Salesman Problem. Shortest path from A to B while traversing preselected nodes
 def find_shortest_path_with_pickup_points(matrix, selected_points):
 
-    #Build MST
+    #Build MST with prims algorithm
     mst_edges, total_cost = prims_algorithm(matrix, selected_points)
-    print("MST edges:", mst_edges)
+    #print("MST edges:", mst_edges)
     print("Edges in the Minimum Spanning Tree:")
     for u, v, weight in mst_edges:
         print(f"{u} -- {v} (Weight: {weight})")
     print(f"Total cost of the Minimum Spanning Tree: {total_cost}")
-
     # Draw the MST into the graph
-    draw_route_into_graph(mst_edges, 'green', 'Minimum spanning tree')
+    draw_route_into_graph(mst_edges, 'green', f"Minimum spanning tree\n Total cost: {total_cost}" )
+
     #Odd Degree vertices of MST
     num_vertices = len(adj_matrix_algo)
     odd_vertices = find_odd_degree_vertices(mst_edges, num_vertices)
     print("Vertices with odd degrees:", odd_vertices)
+    
+
     return None
 
 # Function to convert characters A-Z to indices 0-25
@@ -179,28 +181,6 @@ def calculate_path():
         #print("Minimum distance:", min_distance)
 
         draw_route_into_graph(best_route,'red', f"Shortest Path from {index_to_char(start_index)} to {index_to_char(end_index)}")
-        return
-        # Clear the current axes and redraw the graph
-        ax.clear()  # Clear the axes before redrawing
-
-        # Redraw the graph with the new route
-        nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=500, ax=ax)
-        
-        # Highlight the best route
-        route_edges = [(best_route[i], best_route[i + 1]) for i in range(len(best_route) - 1)]
-        nx.draw_networkx_edges(G, pos, edgelist=route_edges, width=5, edge_color='orange')
-
-        # Draw edge labels (distances)
-        edge_labels = nx.get_edge_attributes(G, 'weight')
-        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
-        
-        # Fixed positions in axes coordinates
-        plt.text(0.8, -0.05, f"Best route found: {' -> '.join(best_route)}", 
-                 horizontalalignment='center', verticalalignment='center', fontsize=12, 
-                 bbox=dict(facecolor='lightgray', alpha=0.5), transform=ax.transAxes)
-
-        plt.title('Optimal Route Visualization', fontsize=14,bbox=dict(facecolor='green', alpha=0.5))
-        plt.draw()  # Update the plot with the new edges
 
 
 def initialize_variables():
