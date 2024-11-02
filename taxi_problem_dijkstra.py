@@ -6,6 +6,7 @@ from tkinter import Tk, Button, Label, Frame, filedialog
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import os
 import shutil
+import numpy as np
 
 # Dijkstra's Algorithm for shortest path from point A to B without selected pickup points in between
 def find_shortest_path_dijkstras(matrix, start, end):
@@ -88,6 +89,7 @@ def prims_algorithm(adj_matrix, selected_points):
     return mst_edges, total_cost
 
 def find_odd_degree_vertices(mst_edges, num_vertices):
+
     #degree counter initialized to 0 for each vertex
     vertex_degree = [0] * num_vertices
     
@@ -103,8 +105,45 @@ def find_odd_degree_vertices(mst_edges, num_vertices):
     
     return odd_degree_vertices
 
+# use of greedy algorithm
+# hungarian algorithm would be better i think
+def minimum_cost_perfect_matching(matrix, odd_vertices):
+    # List to store the matched pairs
+    matching = []
+    
+    # Sort all pairs of odd vertices by their distance (cost in matrix)
+    edges = []
+    for i in range(len(odd_vertices)):
+        for j in range(i + 1, len(odd_vertices)):
+            u, v = odd_vertices[i], odd_vertices[j]
+            cost = matrix.iloc[u,v]
+            edges.append((cost, u, v))
+    
+    # Sort edges based on cost in ascending order
+    edges.sort()
+    
+    # Set to keep track of matched vertices
+    matched = set()
+    
+    # Greedily add edges to the matching set
+    for cost, u, v in edges:
+        # Only add edge if both vertices are not already matched
+        if u not in matched and v not in matched:
+            matching.append((u, v))
+            matched.add(u)
+            matched.add(v)
+    
+    return matching
+
+
+
+# Williamson, D. P., & Shmoys, D. B. (2011). The Design of Approximation Algorithms. Cambridge University Press.
+def build_euler_tour(matrix, start):
+    pass
+    #TODO
+
 # Travelling Salesman Problem. Shortest path from A to B while traversing preselected nodes
-def find_shortest_path_with_pickup_points(matrix, selected_points):
+def find_circular_route(matrix, selected_points):
 
     #Build MST with prims algorithm
     mst_edges, total_cost = prims_algorithm(matrix, selected_points)
@@ -116,11 +155,21 @@ def find_shortest_path_with_pickup_points(matrix, selected_points):
     # Draw the MST into the graph
     draw_route_into_graph(mst_edges, 'green', f"Minimum spanning tree\n Total cost: {total_cost}" )
 
-    #Odd Degree vertices of MST
+    # Odd Degree vertices of MST
     num_vertices = len(adj_matrix_algo)
     odd_vertices = find_odd_degree_vertices(mst_edges, num_vertices)
     print("Vertices with odd degrees:", odd_vertices)
     
+    # Find minimum-cost perfect matching for odd vertices
+    matching = minimum_cost_perfect_matching(matrix, odd_vertices)
+    print("Minimum-cost perfect matching:", matching)
+
+    #TODO
+    # Find the euler tour
+    # Euler tour is a path that visits every edge of a graph exactly once and returns to the starting vertex
+    start_index = char_to_index(selected_points[0])
+    euler_tour = build_euler_tour(matrix, start_index)
+    print("Euler tour: ", euler_tour)
 
     return None
 
@@ -170,7 +219,7 @@ def calculate_path():
         # Decide whether to search for A->B or via several pickup points
         if pickup_indices:
             #best_route = 
-            find_shortest_path_with_pickup_points(adj_matrix_algo, selected_points)
+            find_circular_route(adj_matrix_algo, selected_points)
             print("Traversing multiple pickup points not supported yet.")
             return  #has to be removed when feature is implemented
         else: 
