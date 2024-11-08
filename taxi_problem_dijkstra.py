@@ -121,7 +121,7 @@ def minimum_cost_perfect_matching(matrix, odd_vertices):
     for i in range(len(odd_vertices)):
         for j in range(i + 1, len(odd_vertices)):
             u, v = odd_vertices[i], odd_vertices[j]
-            cost = matrix.iloc[u,v]
+            cost = matrix.loc[u,v]
             edges.append((cost, u, v))
     
     # Sort edges based on cost in ascending order
