@@ -66,32 +66,29 @@ def prims_algorithm(adj_matrix, selected_points):
 
     # Start from the first vertex in the selected points
     start_vertex = selected_points[0]
-    min_heap = [(0, start_vertex)]  # Start from the first selected vertex
+    min_heap = [(0, None, start_vertex)]  # weight, previous node, current node
     visited = set()  # To track visited vertices
-    edge_to = {start_vertex: (None, 0)}  # Store the edge as (previous_vertex, edge_weight)
 
     while min_heap:
         # Get the edge with the minimum weight
-        weight, u = heapq.heappop(min_heap)
+        weight, prev_node, node = heapq.heappop(min_heap)
 
-        if u in visited:
+        if node in visited:
             continue  # Skip if already visited
 
-        visited.add(u)  # Mark vertex as visited
+        visited.add(node)  # Mark vertex as visited
         total_cost += weight  # Update the total cost
 
-        if edge_to[u][0] is not None:
+        if prev_node is not None:
             # Append the edge only if it's not the starting node
-            mst_edges.append((edge_to [u][0], u, weight))
+            mst_edges.append((prev_node, node, weight))
 
         # Add all edges from the current vertex to the priority queue
-        for v in selected_points:
-            if v not in visited:
-                edge_weight = matrix_selected_points.loc[u, v]  # Access using string labels
+        for othernode in selected_points:
+            if othernode not in visited:
+                edge_weight = matrix_selected_points.loc[node, othernode]  # Access using string labels
                 if pd.notna(edge_weight) and edge_weight > 0:  # Check if the edge is valid
-                    if v not in edge_to or edge_weight < edge_to[v][1]:
-                        edge_to[v] = (u, edge_weight)  # Update with the smaller edge weight
-                        heapq.heappush(min_heap, (edge_weight, v))  # Push the new edge into the heap
+                    heapq.heappush(min_heap, (edge_weight, node, othernode))  # Push the new edge into the heap
 
     return mst_edges, total_cost
 
@@ -164,7 +161,7 @@ def find_circular_route(matrix, selected_points):
     # Odd Degree vertices of MST
     odd_vertices = find_odd_degree_vertices(mst_edges, selected_points)
     print("Vertices with odd degrees:", odd_vertices)
-    
+
     # Find minimum-cost perfect matching for odd vertices
     matching = minimum_cost_perfect_matching(matrix, odd_vertices)
     print("Minimum-cost perfect matching:", matching)
