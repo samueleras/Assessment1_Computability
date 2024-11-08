@@ -101,7 +101,7 @@ def find_odd_degree_vertices(mst_edges, num_vertices):
     #degree counter initialized to 0 for each vertex
     vertex_degree = [0] * num_vertices
     
-    mst_edges_numeric = [(ord(u) - ord('A'), ord(v) - ord('A')) for u, v, weight in mst_edges]
+    mst_edges_numeric = [(char_to_index(u), char_to_index(v)) for u, v, weight in mst_edges]
 
     # Iterate through all edges in the MST and count the degree of each vertex
     for u, v in mst_edges_numeric:
