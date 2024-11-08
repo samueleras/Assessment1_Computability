@@ -95,20 +95,19 @@ def prims_algorithm(adj_matrix, selected_points):
 
     return mst_edges, total_cost
 
-def find_odd_degree_vertices(mst_edges, num_vertices):
+def find_odd_degree_vertices(mst_edges, selected_points):
 
-    #degree counter initialized to 0 for each vertex
-    vertex_degree = [0] * num_vertices
-    
-    mst_edges_numeric = [(char_to_index(u), char_to_index(v)) for u, v, weight in mst_edges]
+    # Initialize degree counter for each vertex using a dictionary
+    vertex_degree = {vertex: 0 for vertex in selected_points}
 
     # Iterate through all edges in the MST and count the degree of each vertex
-    for u, v in mst_edges_numeric:
+    for u, v, weight in mst_edges:
+        # Increase the degree for both vertices connected by the edge
         vertex_degree[u] += 1
         vertex_degree[v] += 1
     
     # Identify vertices with odd degrees
-    odd_degree_vertices = [vertex for vertex in range(num_vertices) if vertex_degree[vertex] % 2 == 1]
+    odd_degree_vertices = [vertex for vertex, degree in vertex_degree.items() if degree % 2 == 1]
     
     return odd_degree_vertices
 
@@ -163,8 +162,7 @@ def find_circular_route(matrix, selected_points):
     draw_route_into_graph(mst_edges, 'green', f"Minimum spanning tree\n Total cost: {total_cost}" )
 
     # Odd Degree vertices of MST
-    num_vertices = len(adj_matrix_algo)
-    odd_vertices = find_odd_degree_vertices(mst_edges, num_vertices)
+    odd_vertices = find_odd_degree_vertices(mst_edges, selected_points)
     print("Vertices with odd degrees:", odd_vertices)
     
     # Find minimum-cost perfect matching for odd vertices
