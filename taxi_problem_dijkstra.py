@@ -61,7 +61,6 @@ def prims_algorithm(adj_matrix, selected_points):
     # Extract the submatrix for the selected points
     matrix_selected_points = adj_matrix.loc[selected_points, selected_points]
 
-    n = len(matrix_selected_points)  # Number of vertices in the graph
     mst_edges = []  # List to store the edges of the MST
     total_cost = 0  # To keep track of the total cost of the MST
 
@@ -69,7 +68,7 @@ def prims_algorithm(adj_matrix, selected_points):
     start_vertex = selected_points[0]
     min_heap = [(0, start_vertex)]  # Start from the first selected vertex
     visited = set()  # To track visited vertices
-    prev_vertex = None  # To track the previous vertex for edge creation
+    edge_to = {start_vertex: (None, 0)}  # Store the edge as (previous_vertex, edge_weight)
 
     while min_heap:
         # Get the edge with the minimum weight
@@ -81,18 +80,18 @@ def prims_algorithm(adj_matrix, selected_points):
         visited.add(u)  # Mark vertex as visited
         total_cost += weight  # Update the total cost
 
-        if prev_vertex is not None:
+        if edge_to[u][0] is not None:
             # Append the edge only if it's not the starting node
-            mst_edges.append((prev_vertex, u, weight))
+            mst_edges.append((edge_to [u][0], u, weight))
 
         # Add all edges from the current vertex to the priority queue
-        for v in matrix_selected_points.columns:
+        for v in selected_points:
             if v not in visited:
                 edge_weight = matrix_selected_points.loc[u, v]  # Access using string labels
                 if pd.notna(edge_weight) and edge_weight > 0:  # Check if the edge is valid
-                    heapq.heappush(min_heap, (edge_weight, v))
-        
-        prev_vertex = u  # Update previous vertex for next iteration
+                    if v not in edge_to or edge_weight < edge_to[v][1]:
+                        edge_to[v] = (u, edge_weight)  # Update with the smaller edge weight
+                        heapq.heappush(min_heap, (edge_weight, v))  # Push the new edge into the heap
 
     return mst_edges, total_cost
 
