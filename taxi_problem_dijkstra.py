@@ -170,6 +170,14 @@ def find_circular_route(matrix, selected_points):
     matching = minimum_cost_perfect_matching(matrix, odd_vertices, mst_edges)
     print("Minimum-cost perfect matching:", matching)
 
+    # Combine MST and matching to form the multigraph
+    multigraph_edges = mst_edges + matching
+    print("Combined edges in the multigraph (MST + Matching):")
+    for u, v, weight in multigraph_edges:
+        print(f"{u} -- {v} (Weight: {weight})")
+    
+    draw_route_into_graph(multigraph_edges, 'blue', "Multigraph with even-degree vertices")
+
     #TODO
     # Find the euler tour
     # Euler tour is a path that visits every edge of a graph exactly once and returns to the starting vertex
