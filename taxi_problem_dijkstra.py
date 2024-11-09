@@ -112,17 +112,21 @@ def find_odd_degree_vertices(mst_edges, selected_points):
 # hungarian algorithm would be better i think or modified dijerkas
 # but for now fine
 # TODO
-def minimum_cost_perfect_matching(matrix, odd_vertices):
+def minimum_cost_perfect_matching(matrix, odd_vertices, mst_edges):
     # List to store the matched pairs
     matching = []
     
+    # Convert MST edges to a set of undirected pairs for easy exclusion
+    mst_edge_set = {(min(u, v), max(u, v)) for u, v, weight in mst_edges}
+
     # Sort all pairs of odd vertices by their distance (cost in matrix)
     edges = []
     for i in range(len(odd_vertices)):
         for j in range(i + 1, len(odd_vertices)):
             u, v = odd_vertices[i], odd_vertices[j]
-            cost = matrix.loc[u,v]
-            edges.append((cost, u, v))
+            if (min(u, v), max(u, v)) not in mst_edge_set:
+                weight = matrix.loc[u,v]
+                edges.append((weight, u, v))
     
     # Sort edges based on cost in ascending order
     edges.sort()
@@ -131,10 +135,10 @@ def minimum_cost_perfect_matching(matrix, odd_vertices):
     matched = set()
     
     # Greedily add edges to the matching set
-    for cost, u, v in edges:
+    for weight, u, v in edges:
         # Only add edge if both vertices are not already matched
         if u not in matched and v not in matched:
-            matching.append((u, v))
+            matching.append((u, v, weight))
             matched.add(u)
             matched.add(v)
     
@@ -163,7 +167,7 @@ def find_circular_route(matrix, selected_points):
     print("Vertices with odd degrees:", odd_vertices)
 
     # Find minimum-cost perfect matching for odd vertices
-    matching = minimum_cost_perfect_matching(matrix, odd_vertices)
+    matching = minimum_cost_perfect_matching(matrix, odd_vertices, mst_edges)
     print("Minimum-cost perfect matching:", matching)
 
     #TODO
