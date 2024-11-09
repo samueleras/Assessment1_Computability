@@ -7,6 +7,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import os
 import shutil
 import numpy as np
+from collections import defaultdict
 
 # Dijkstra's Algorithm for shortest path from point A to B without selected pickup points in between
 def find_shortest_path_dijkstras(matrix, start, end):
@@ -143,12 +144,58 @@ def minimum_cost_perfect_matching(matrix, odd_vertices, mst_edges):
             matched.add(u)
             matched.add(v)
     
+    print(f"Matching: {matching}")
     return matching
 
-# Williamson, D. P., & Shmoys, D. B. (2011). The Design of Approximation Algorithms. Cambridge University Press.
-def build_euler_tour(matrix, start):
-    pass
-    #TODO
+# Check if the route has only even degrees vertices
+def has_even_degrees(edges):
+    # Step 1: Initialize a dictionary to track the degree of each vertex
+    degree_count = defaultdict(int)
+    
+    # Step 2: Count the degree of each vertex from the edges
+    for u, v in edges:
+        degree_count[u] += 1  # Outgoing edge from u
+        degree_count[v] += 1  # Incoming edge to v
+    
+    # Step 3: Check if all vertices have even degrees
+    for degree in degree_count.values():
+        if degree % 2 != 0:
+            return False  # Return False if any vertex has an odd degree
+    
+    return True  # All vertices have even degrees
+
+# Use of Hierholzer algorithm
+def find_eulerian_circuit(edges):
+    # Step 1: Build the graph as an adjacency list
+    graph = defaultdict(list)
+    for u, v in edges:
+        graph[u].append(v)
+    
+    # Step 2: Ensure that all vertices have an even degree
+    for vertex in graph:
+        if len(graph[vertex]) % 2 != 0:
+            raise ValueError("The graph does not have an Eulerian circuit. All vertices must have an even degree.")
+    
+    # Step 3: Initialize an empty path to store the Eulerian circuit
+    path = []
+    
+    # Step 4: Use Hierholzer's algorithm to find the circuit
+    def dfs(vertex):
+        # While there are unused edges from the current vertex
+        while graph[vertex]:
+            # Get the next adjacent vertex
+            next_vertex = graph[vertex].pop()
+            # Recursively follow the next edge
+            dfs(next_vertex)
+        # Add the current vertex to the path after all outgoing edges are used
+        path.append(vertex)
+    
+    # Start DFS from any vertex (here we start from the first vertex in edges)
+    start_vertex = edges[0][0]
+    dfs(start_vertex)
+    
+    # Step 5: Return the Eulerian circuit in reverse order
+    return path[::-1]
 
 # Travelling Salesman Problem. Shortest path from A to B while traversing preselected nodes
 def find_circular_route(matrix, selected_points):
@@ -171,19 +218,22 @@ def find_circular_route(matrix, selected_points):
     matching = minimum_cost_perfect_matching(matrix, odd_vertices, mst_edges)
     print("Minimum-cost perfect matching:", matching)
 
+    draw_route_into_graph(matching, 'green', f"Minimum-cost perfect matching\n" )
     # Combine MST and matching to form the multigraph
-    multigraph_edges = mst_edges + matching
+    multigraph_edges_with_weights = mst_edges + matching   
+    multigraph_edges = convert_to_edges(multigraph_edges_with_weights)
     print("Combined edges in the multigraph (MST + Matching):")
-    for u, v, weight in multigraph_edges:
+    for u, v, weight in multigraph_edges_with_weights:
         print(f"{u} -- {v} (Weight: {weight})")
-    
+
     draw_route_into_graph(multigraph_edges, 'blue', "Multigraph with even-degree vertices")
 
     #TODO
     # Find the euler tour
     # Euler tour is a path that visits every edge of a graph exactly once and returns to the starting vertex
     start_index = char_to_index(selected_points[0])
-    euler_tour = build_euler_tour(matrix, start_index)
+    print("Multigraph_edges: ", multigraph_edges)
+    euler_tour = find_eulerian_circuit(multigraph_edges)
     print("Euler tour: ", euler_tour)
 
     return None
