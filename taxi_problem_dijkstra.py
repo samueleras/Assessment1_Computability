@@ -62,55 +62,50 @@ def prims_algorithm(adj_matrix, selected_points):
     # Extract the submatrix for the selected points
     matrix_selected_points = adj_matrix.loc[selected_points, selected_points]
 
-    n = len(matrix_selected_points)  # Number of vertices in the graph
     mst_edges = []  # List to store the edges of the MST
     total_cost = 0  # To keep track of the total cost of the MST
 
     # Start from the first vertex in the selected points
     start_vertex = selected_points[0]
-    min_heap = [(0, start_vertex)]  # Start from the first selected vertex
+    min_heap = [(0, None, start_vertex)]  # weight, previous node, current node
     visited = set()  # To track visited vertices
-    prev_vertex = None  # To track the previous vertex for edge creation
 
     while min_heap:
         # Get the edge with the minimum weight
-        weight, u = heapq.heappop(min_heap)
+        weight, prev_node, node = heapq.heappop(min_heap)
 
-        if u in visited:
+        if node in visited:
             continue  # Skip if already visited
 
-        visited.add(u)  # Mark vertex as visited
+        visited.add(node)  # Mark vertex as visited
         total_cost += weight  # Update the total cost
 
-        if prev_vertex is not None:
+        if prev_node is not None:
             # Append the edge only if it's not the starting node
-            mst_edges.append((prev_vertex, u, weight))
+            mst_edges.append((prev_node, node, weight))
 
         # Add all edges from the current vertex to the priority queue
-        for v in matrix_selected_points.columns:
-            if v not in visited:
-                edge_weight = matrix_selected_points.loc[u, v]  # Access using string labels
+        for othernode in selected_points:
+            if othernode not in visited:
+                edge_weight = matrix_selected_points.loc[node, othernode]  # Access using string labels
                 if pd.notna(edge_weight) and edge_weight > 0:  # Check if the edge is valid
-                    heapq.heappush(min_heap, (edge_weight, v))
-        
-        prev_vertex = u  # Update previous vertex for next iteration
+                    heapq.heappush(min_heap, (edge_weight, node, othernode))  # Push the new edge into the heap
 
     return mst_edges, total_cost
 
-def find_odd_degree_vertices(mst_edges, num_vertices):
+def find_odd_degree_vertices(mst_edges, selected_points):
 
-    #degree counter initialized to 0 for each vertex
-    vertex_degree = [0] * num_vertices
-    
-    mst_edges_numeric = [(ord(u) - ord('A'), ord(v) - ord('A')) for u, v, weight in mst_edges]
+    # Initialize degree counter for each vertex using a dictionary
+    vertex_degree = {vertex: 0 for vertex in selected_points}
 
     # Iterate through all edges in the MST and count the degree of each vertex
-    for u, v in mst_edges_numeric:
+    for u, v, weight in mst_edges:
+        # Increase the degree for both vertices connected by the edge
         vertex_degree[u] += 1
         vertex_degree[v] += 1
     
     # Identify vertices with odd degrees
-    odd_degree_vertices = [vertex for vertex in range(num_vertices) if vertex_degree[vertex] % 2 == 1]
+    odd_degree_vertices = [vertex for vertex, degree in vertex_degree.items() if degree % 2 == 1]
     
     return odd_degree_vertices
 
@@ -118,17 +113,21 @@ def find_odd_degree_vertices(mst_edges, num_vertices):
 # hungarian algorithm would be better i think or modified dijerkas
 # but for now fine
 # TODO
-def minimum_cost_perfect_matching(matrix, odd_vertices):
+def minimum_cost_perfect_matching(matrix, odd_vertices, mst_edges):
     # List to store the matched pairs
     matching = []
     
+    # Convert MST edges to a set of undirected pairs for easy exclusion
+    mst_edge_set = {(min(u, v), max(u, v)) for u, v, weight in mst_edges}
+
     # Sort all pairs of odd vertices by their distance (cost in matrix)
     edges = []
     for i in range(len(odd_vertices)):
         for j in range(i + 1, len(odd_vertices)):
             u, v = odd_vertices[i], odd_vertices[j]
-            cost = matrix.iloc[u,v]
-            edges.append((cost, u, v))
+            if (min(u, v), max(u, v)) not in mst_edge_set:
+                weight = matrix.loc[u,v]
+                edges.append((weight, u, v))
     
     # Sort edges based on cost in ascending order
     edges.sort()
@@ -137,10 +136,10 @@ def minimum_cost_perfect_matching(matrix, odd_vertices):
     matched = set()
     
     # Greedily add edges to the matching set
-    for cost, u, v in edges:
+    for weight, u, v in edges:
         # Only add edge if both vertices are not already matched
         if u not in matched and v not in matched:
-            matching.append((u, v))
+            matching.append((u, v, weight))
             matched.add(u)
             matched.add(v)
     
@@ -165,13 +164,20 @@ def find_circular_route(matrix, selected_points):
     draw_route_into_graph(mst_edges, 'green', f"Minimum spanning tree\n Total cost: {total_cost}" )
 
     # Odd Degree vertices of MST
-    num_vertices = len(adj_matrix_algo)
-    odd_vertices = find_odd_degree_vertices(mst_edges, num_vertices)
+    odd_vertices = find_odd_degree_vertices(mst_edges, selected_points)
     print("Vertices with odd degrees:", odd_vertices)
-    
+
     # Find minimum-cost perfect matching for odd vertices
-    matching = minimum_cost_perfect_matching(matrix, odd_vertices)
+    matching = minimum_cost_perfect_matching(matrix, odd_vertices, mst_edges)
     print("Minimum-cost perfect matching:", matching)
+
+    # Combine MST and matching to form the multigraph
+    multigraph_edges = mst_edges + matching
+    print("Combined edges in the multigraph (MST + Matching):")
+    for u, v, weight in multigraph_edges:
+        print(f"{u} -- {v} (Weight: {weight})")
+    
+    draw_route_into_graph(multigraph_edges, 'blue', "Multigraph with even-degree vertices")
 
     #TODO
     # Find the euler tour
