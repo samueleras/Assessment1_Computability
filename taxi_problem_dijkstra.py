@@ -8,6 +8,7 @@ import os
 import shutil
 import numpy as np
 from collections import defaultdict
+import itertools
 
 # Dijkstra's Algorithm for shortest path from point A to B without selected pickup points in between
 def find_shortest_path_dijkstras(matrix, start, end):
@@ -115,37 +116,21 @@ def find_odd_degree_vertices(mst_edges, selected_points):
 # but for now fine
 # TODO
 def minimum_cost_perfect_matching(matrix, odd_vertices, mst_edges):
-    # List to store the matched pairs
-    matching = []
-    
-    # Convert MST edges to a set of undirected pairs for easy exclusion
-    mst_edge_set = {(min(u, v), max(u, v)) for u, v, weight in mst_edges}
+    min_cost_matching = []
+    min_cost = float('inf')
 
-    # Sort all pairs of odd vertices by their distance (cost in matrix)
-    edges = []
-    for i in range(len(odd_vertices)):
-        for j in range(i + 1, len(odd_vertices)):
-            u, v = odd_vertices[i], odd_vertices[j]
-            if (min(u, v), max(u, v)) not in mst_edge_set:
-                weight = matrix.loc[u,v]
-                edges.append((weight, u, v))
-    
-    # Sort edges based on cost in ascending order
-    edges.sort()
-    
-    # Set to keep track of matched vertices
-    matched = set()
-    
-    # Greedily add edges to the matching set
-    for weight, u, v in edges:
-        # Only add edge if both vertices are not already matched
-        if u not in matched and v not in matched:
-            matching.append((u, v, weight))
-            matched.add(u)
-            matched.add(v)
-    
-    print(f"Matching: {matching}")
-    return matching
+    # Find all pairs of odd vertices
+    pairs = list(itertools.combinations(odd_vertices, 2))
+
+    # Check all possible matchings
+    for matching in itertools.combinations(pairs, len(odd_vertices) // 2):
+        if len(set([v for pair in matching for v in pair])) == len(odd_vertices):  # Ensure perfect matching
+            cost = sum(matrix[u][v] for u, v in matching)
+            if cost < min_cost:
+                min_cost = cost
+                min_cost_matching = [(u, v, matrix[u][v]) for u, v in matching]
+
+    return min_cost_matching
 
 # Check if the route has only even degrees vertices
 def has_even_degrees(edges):
@@ -169,33 +154,32 @@ def find_eulerian_circuit(edges):
     # Step 1: Build the graph as an adjacency list
     graph = defaultdict(list)
     for u, v in edges:
-        graph[u].append(v)
+        graph[char_to_index(u)].append(char_to_index(v))
+    
+    print("Graph for Hierholzer: ", graph)
     
     # Step 2: Ensure that all vertices have an even degree
-    for vertex in graph:
-        if len(graph[vertex]) % 2 != 0:
-            raise ValueError("The graph does not have an Eulerian circuit. All vertices must have an even degree.")
+    if has_even_degrees(edges) == False:
+        raise ValueError("The graph does not have an Eulerian circuit.")
     
-    # Step 3: Initialize an empty path to store the Eulerian circuit
-    path = []
-    
-    # Step 4: Use Hierholzer's algorithm to find the circuit
-    def dfs(vertex):
-        # While there are unused edges from the current vertex
-        while graph[vertex]:
-            # Get the next adjacent vertex
+    # Hierholzer's algorithm for finding the Eulerian circuit
+    circuit = []
+    stack = [edges[0][0]]  # Start from the first node in the first edge
+    print("Stack: ", stack)
+
+    while stack:
+        vertex = stack[-1]
+        if graph[vertex]:
+            # While the current vertex has edges, keep traversing
             next_vertex = graph[vertex].pop()
-            # Recursively follow the next edge
-            dfs(next_vertex)
-        # Add the current vertex to the path after all outgoing edges are used
-        path.append(vertex)
+            graph[next_vertex].remove(vertex)
+            stack.append(next_vertex)
+        else:
+            # Backtrack if there are no more edges to explore from the current vertex
+            circuit.append(stack.pop())
     
-    # Start DFS from any vertex (here we start from the first vertex in edges)
-    start_vertex = edges[0][0]
-    dfs(start_vertex)
-    
-    # Step 5: Return the Eulerian circuit in reverse order
-    return path[::-1]
+    print("Circuit: ", circuit)
+    return circuit[::-1]  # Reverse to get the circuit in the correct order
 
 # Travelling Salesman Problem. Shortest path from A to B while traversing preselected nodes
 def find_circular_route(matrix, selected_points):
@@ -212,19 +196,26 @@ def find_circular_route(matrix, selected_points):
 
     # Odd Degree vertices of MST
     odd_vertices = find_odd_degree_vertices(mst_edges, selected_points)
-    print("Vertices with odd degrees:", odd_vertices)
+    while odd_vertices:
+        print("Vertices with odd degrees:", odd_vertices)
 
-    # Find minimum-cost perfect matching for odd vertices
-    matching = minimum_cost_perfect_matching(matrix, odd_vertices, mst_edges)
-    print("Minimum-cost perfect matching:", matching)
+        # Find minimum-cost perfect matching for odd vertices
+        matching = minimum_cost_perfect_matching(matrix, odd_vertices, mst_edges)
+        print("Minimum-cost perfect matching:", matching)
 
-    draw_route_into_graph(matching, 'green', f"Minimum-cost perfect matching\n" )
-    # Combine MST and matching to form the multigraph
-    multigraph_edges_with_weights = mst_edges + matching   
-    multigraph_edges = convert_to_edges(multigraph_edges_with_weights)
-    print("Combined edges in the multigraph (MST + Matching):")
-    for u, v, weight in multigraph_edges_with_weights:
-        print(f"{u} -- {v} (Weight: {weight})")
+        draw_route_into_graph(matching, 'green', f"Minimum-cost perfect matching\n" )
+        # Combine MST and matching to form the multigraph
+        multigraph_edges_with_weights = mst_edges + matching   
+        multigraph_edges = convert_to_edges(multigraph_edges_with_weights)
+        print("Combined edges in the multigraph (MST + Matching):")
+        for u, v, weight in multigraph_edges_with_weights:
+            print(f"{u} -- {v} (Weight: {weight})")
+        
+        odd_vertices = find_odd_degree_vertices(multigraph_edges_with_weights, selected_points)
+    
+    # Check again if there are any odd vertices
+    odd_vertices_check = find_odd_degree_vertices(multigraph_edges_with_weights, selected_points)
+    print("Check again for any odd vertices:", odd_vertices_check)
 
     draw_route_into_graph(multigraph_edges, 'blue', "Multigraph with even-degree vertices")
 
@@ -235,6 +226,7 @@ def find_circular_route(matrix, selected_points):
     print("Multigraph_edges: ", multigraph_edges)
     euler_tour = find_eulerian_circuit(multigraph_edges)
     print("Euler tour: ", euler_tour)
+    #draw_route_into_graph(euler_tour, 'yellow', "Eulerian tour")
 
     return None
 
