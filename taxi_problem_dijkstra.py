@@ -151,35 +151,34 @@ def has_even_degrees(edges):
 
 # Use of Hierholzer algorithm
 def find_eulerian_circuit(edges):
-    # Step 1: Build the graph as an adjacency list
-    graph = defaultdict(list)
-    for u, v in edges:
-        graph[char_to_index(u)].append(char_to_index(v))
-    
-    print("Graph for Hierholzer: ", graph)
-    
-    # Step 2: Ensure that all vertices have an even degree
-    if has_even_degrees(edges) == False:
-        raise ValueError("The graph does not have an Eulerian circuit.")
-    
-    # Hierholzer's algorithm for finding the Eulerian circuit
-    circuit = []
-    stack = [edges[0][0]]  # Start from the first node in the first edge
-    print("Stack: ", stack)
+    # Convert graph edges to an adjacency list representation
+    adj_list = {point: [] for point in selected_points}
+    for u, v, weight in edges:
+        adj_list[u].append(v)
+        adj_list[v].append(u)
+    print("Adj list: ", adj_list)
 
-    while stack:
-        vertex = stack[-1]
-        if graph[vertex]:
-            # While the current vertex has edges, keep traversing
-            next_vertex = graph[vertex].pop()
-            graph[next_vertex].remove(vertex)
-            stack.append(next_vertex)
+    # Function to check if a vertex has any unused edges
+    def has_unused_edges(vertex):
+        return len(adj_list[vertex]) > 0
+
+    # Find the Eulerian circuit using Hierholzer's algorithm
+    circuit = []
+    stack = []
+    current_vertex = selected_points[0]  # Start at an arbitrary vertex
+
+    while stack or has_unused_edges(current_vertex):
+        if has_unused_edges(current_vertex):
+            stack.append(current_vertex)
+            next_vertex = adj_list[current_vertex].pop()  # Take an unused edge
+            adj_list[next_vertex].remove(current_vertex)  # Remove reverse edge
+            current_vertex = next_vertex
         else:
-            # Backtrack if there are no more edges to explore from the current vertex
-            circuit.append(stack.pop())
-    
-    print("Circuit: ", circuit)
-    return circuit[::-1]  # Reverse to get the circuit in the correct order
+            circuit.append(current_vertex)
+            current_vertex = stack.pop()
+
+    # The circuit is constructed in reverse, so we reverse it
+    return circuit[::-1]
 
 # Travelling Salesman Problem. Shortest path from A to B while traversing preselected nodes
 def find_circular_route(matrix, selected_points):
@@ -224,9 +223,9 @@ def find_circular_route(matrix, selected_points):
     # Euler tour is a path that visits every edge of a graph exactly once and returns to the starting vertex
     start_index = char_to_index(selected_points[0])
     print("Multigraph_edges: ", multigraph_edges)
-    euler_tour = find_eulerian_circuit(multigraph_edges)
+    euler_tour = find_eulerian_circuit(multigraph_edges_with_weights)
     print("Euler tour: ", euler_tour)
-    #draw_route_into_graph(euler_tour, 'yellow', "Eulerian tour")
+    draw_route_into_graph(euler_tour, 'orange', "Eulerian tour")
 
     return None
 
