@@ -25,7 +25,7 @@ def find_shortest_path_dijkstras(matrix, start, end):
 
         # If we reach the end node, reconstruct and return the path
         if current == end:
-            return reconstruct_path(came_from, current)
+            best_route = reconstruct_path(came_from, current)        
 
         for neighbor in range(n):
             weight = matrix.iloc[current, neighbor]
@@ -39,7 +39,11 @@ def find_shortest_path_dijkstras(matrix, start, end):
                 came_from[neighbor] = current
                 g_score[neighbor] = tentative_g_score
                 heapq.heappush(open_set, (tentative_g_score, neighbor))
-    
+
+    best_route = index_to_char(best_route)
+    print("Best route found:", " -> ".join(best_route))
+    draw_route_into_graph(best_route,'red', f"Shortest Path from {index_to_char(start)} to {index_to_char(end)}")
+
     return None  # No path found
 
 # Helper function to reconstruct the path
@@ -175,7 +179,7 @@ def find_eulerian_circuit(edges):
             current_vertex = stack.pop()
 
     # The circuit is constructed in reverse, so we reverse it
-    return circuit[::-1]
+    return circuit
 
 def eulerian_to_hamiltonian(eulerian_circuit):
     # Set to keep track of visited nodes
@@ -211,27 +215,26 @@ def find_circular_route(matrix, selected_points):
         matching = minimum_cost_perfect_matching(matrix, odd_vertices, mst_edges)
         print("Minimum-cost perfect matching:", matching)
 
-        draw_route_into_graph(matching, 'green', f"Minimum-cost perfect matching\n" )
         # Combine MST and matching to form the multigraph
         multigraph_edges_with_weights = mst_edges + matching   
-        multigraph_edges = convert_to_edges(multigraph_edges_with_weights)
         print("Combined edges in the multigraph (MST + Matching):")
         for u, v, weight in multigraph_edges_with_weights:
             print(f"{u} -- {v} (Weight: {weight})")
         
         odd_vertices = find_odd_degree_vertices(multigraph_edges_with_weights, selected_points)
 
-    draw_route_into_graph(multigraph_edges, 'blue', "Multigraph with even-degree vertices")
+    draw_route_into_graph(multigraph_edges_with_weights, 'blue', "Multigraph with even-degree vertices")
 
-    # Euler tour is a path that visits every edge of a graph exactly once and returns to the starting vertex
-    print("Multigraph_edges: ", multigraph_edges)
+    # Euler tour is route that might visit one node multiple times
     euler_tour = find_eulerian_circuit(multigraph_edges_with_weights)
     print("Euler tour: ", euler_tour)
     draw_route_into_graph(euler_tour, 'orange', "Eulerian tour", circuit=True)
 
+    # Hamiltonian Circuit bypasses the multiple accessed node so that every node gets visisted exactly once
     hamiltonian_circuit = eulerian_to_hamiltonian(euler_tour)
+    hamiltonian_circuit.append((hamiltonian_circuit[0]))  # Add the last point back to the first point
     print("Hamiltonian circuit: ", hamiltonian_circuit)
-    draw_route_into_graph(hamiltonian_circuit, 'green', "Hamiltonian tour", circuit=True)
+    draw_route_into_graph(hamiltonian_circuit, 'green', f"Shortest Path {"Best route found: "}{" -> ".join(hamiltonian_circuit)}", circuit=True)
 
     return None
 
@@ -280,18 +283,9 @@ def calculate_path():
         
         # Decide whether to search for A->B or via several pickup points
         if pickup_indices:
-            #best_route = 
             find_circular_route(adj_matrix_algo, selected_points)
-            print("Traversing multiple pickup points not supported yet.")
-            return  #has to be removed when feature is implemented
         else: 
-            best_route = find_shortest_path_dijkstras(adj_matrix_algo, start_index, end_index)
-
-        best_route = index_to_char(best_route)
-        print("Best route found:", " -> ".join(best_route))
-        #print("Minimum distance:", min_distance)
-
-        draw_route_into_graph(best_route,'red', f"Shortest Path from {index_to_char(start_index)} to {index_to_char(end_index)}")
+            find_shortest_path_dijkstras(adj_matrix_algo, start_index, end_index)
 
 
 def initialize_variables():
@@ -401,10 +395,6 @@ def convert_to_edges(route, circuit = False):
         edges = [(route[i], route[i + 1]) for i in range(len(route) - 1)]
     else:
         raise ValueError("Invalid route format")
-    
-    # If circuit is True, add an edge from the last point to the first point
-    if circuit and len(route) > 1:
-        edges.append((route[-1], route[0]))  # Add the last point back to the first point
     
     return edges
     
