@@ -177,6 +177,18 @@ def find_eulerian_circuit(edges):
     # The circuit is constructed in reverse, so we reverse it
     return circuit[::-1]
 
+def eulerian_to_hamiltonian(eulerian_circuit):
+    # Set to keep track of visited nodes
+    visited = set()
+    hamiltonian_circuit = []
+    
+    for vertex in eulerian_circuit:
+        if vertex not in visited:
+            hamiltonian_circuit.append(vertex)
+            visited.add(vertex)
+    
+    return hamiltonian_circuit
+
 # Travelling Salesman Problem. Shortest path from A to B while traversing preselected nodes
 def find_circular_route(matrix, selected_points):
 
@@ -215,11 +227,13 @@ def find_circular_route(matrix, selected_points):
     print("Multigraph_edges: ", multigraph_edges)
     euler_tour = find_eulerian_circuit(multigraph_edges_with_weights)
     print("Euler tour: ", euler_tour)
-    draw_route_into_graph(euler_tour, 'orange', "Eulerian tour")
+    draw_route_into_graph(euler_tour, 'orange', "Eulerian tour", circuit=True)
+
+    hamiltonian_circuit = eulerian_to_hamiltonian(euler_tour)
+    print("Hamiltonian circuit: ", hamiltonian_circuit)
+    draw_route_into_graph(hamiltonian_circuit, 'green', "Hamiltonian tour", circuit=True)
 
     return None
-
-
 
 # Function to convert characters A-Z to indices 0-25
 def char_to_index(char):
@@ -360,7 +374,7 @@ def plot_graph():
     plt.draw()
 
 # Convert to edges that are drawable for networkx
-def convert_to_edges(route):
+def convert_to_edges(route, circuit = False):
     """
     Convert different route formats into a list of edges in the format [(A, B), (B, C), (C, D)].
     to be compatible with networkx
@@ -378,18 +392,24 @@ def convert_to_edges(route):
         # Case 1 & 2: Route is a list of tuples
         if len(route[0]) == 3:
             # If tuples have 3 elements, they include weights, so ignore the weight
-            return [(edge[0], edge[1]) for edge in route]
+            edges = [(edge[0], edge[1]) for edge in route]
         else:
             # If tuples have 2 elements, they are already in the correct format
-            return route
+            edges = route
     elif isinstance(route[0], str):
         # Case 3: Route is a list of nodes (strings), convert to edges
-        return [(route[i], route[i + 1]) for i in range(len(route) - 1)]
+        edges = [(route[i], route[i + 1]) for i in range(len(route) - 1)]
     else:
         raise ValueError("Invalid route format")
     
+    # If circuit is True, add an edge from the last point to the first point
+    if circuit and len(route) > 1:
+        edges.append((route[-1], route[0]))  # Add the last point back to the first point
+    
+    return edges
+    
 # Draw a route onto an existing graph and highlighting it
-def draw_route_into_graph(route, color='red', plot_text=None, draw_labels=True):
+def draw_route_into_graph(route, color='red', plot_text=None, draw_labels=True, circuit=False):
     """
     Parameters:
     - route (list): A route in one of the following formats:
@@ -400,7 +420,7 @@ def draw_route_into_graph(route, color='red', plot_text=None, draw_labels=True):
     - plot_text (str): Optional title for the plot (default is None).
     - draw_labels (bool): Optional draw the weights to the edges (default is True).
     """
-    route = convert_to_edges(route)
+    route = convert_to_edges(route, circuit)
 
     # Clear the current axes and redraw the graph
     ax.clear()  # Clear the axes before redrawing
