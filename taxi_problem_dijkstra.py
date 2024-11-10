@@ -111,10 +111,7 @@ def find_odd_degree_vertices(mst_edges, selected_points):
     
     return odd_degree_vertices
 
-# use of greedy algorithm
-# hungarian algorithm would be better i think or modified dijerkas
-# but for now fine
-# TODO
+# Use of a greedy approach to find the minimum cost perfect matching
 def minimum_cost_perfect_matching(matrix, odd_vertices, mst_edges):
     min_cost_matching = []
     min_cost = float('inf')
@@ -185,7 +182,6 @@ def find_circular_route(matrix, selected_points):
 
     #Build MST with prims algorithm
     mst_edges, total_cost = prims_algorithm(matrix, selected_points)
-    #print("MST edges:", mst_edges)
     print("Edges in the Minimum Spanning Tree:")
     for u, v, weight in mst_edges:
         print(f"{u} -- {v} (Weight: {weight})")
@@ -195,6 +191,7 @@ def find_circular_route(matrix, selected_points):
 
     # Odd Degree vertices of MST
     odd_vertices = find_odd_degree_vertices(mst_edges, selected_points)
+    # As long as there are odd vertices add edges
     while odd_vertices:
         print("Vertices with odd degrees:", odd_vertices)
 
@@ -211,17 +208,10 @@ def find_circular_route(matrix, selected_points):
             print(f"{u} -- {v} (Weight: {weight})")
         
         odd_vertices = find_odd_degree_vertices(multigraph_edges_with_weights, selected_points)
-    
-    # Check again if there are any odd vertices
-    odd_vertices_check = find_odd_degree_vertices(multigraph_edges_with_weights, selected_points)
-    print("Check again for any odd vertices:", odd_vertices_check)
 
     draw_route_into_graph(multigraph_edges, 'blue', "Multigraph with even-degree vertices")
 
-    #TODO
-    # Find the euler tour
     # Euler tour is a path that visits every edge of a graph exactly once and returns to the starting vertex
-    start_index = char_to_index(selected_points[0])
     print("Multigraph_edges: ", multigraph_edges)
     euler_tour = find_eulerian_circuit(multigraph_edges_with_weights)
     print("Euler tour: ", euler_tour)
