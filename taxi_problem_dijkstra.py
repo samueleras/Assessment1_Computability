@@ -289,7 +289,8 @@ def calculate_path():
 
 
 def initialize_variables():
-    global selected_points, labels, current_label, selection_finished
+    global selected_points, labels, current_label, selection_finished, selected_modus
+    selected_modus = 'route' # Start modus # or 'circuit'
     selected_points = []
     labels= ['start', 'finish']  # Labels for selection
     current_label = 0  # To keep track of what the user is selecting
@@ -354,6 +355,27 @@ def create_graph():
 
     # Print available nodes for debugging
     print("Available nodes in the graph:", G.nodes)
+
+def change_mode(mode):
+    global change_mode_button
+    text_route = "Mode: Route   (Change with R or C)"
+    text_circuit = "Mode: Circuit (Change with R or C)"
+    if selected_points:
+        print("Can only change the Mode before choosing points!")
+        return
+    if mode == 'r':
+        change_mode_button.config(text=text_route)
+        selected_modus = 'route'
+    elif mode == 'c':
+        change_mode_button.config(text=text_circuit)
+        selected_modus = 'circuit'
+    elif mode == 'switch':
+        if change_mode_button.cget("text") == text_circuit:
+            change_mode_button.config(text=text_route)
+            selected_modus = 'route'
+        else:
+            change_mode_button.config(text=text_circuit)
+            selected_modus = 'circuit'
 
 # Function to plot the graph
 def plot_graph():
@@ -431,9 +453,13 @@ def create_gui():
     root.title("Computability and Optimisation Assignment 1")
 
     # Create a frame for the plot
-    global frame, canvas
+    global frame, canvas, change_mode_button
     frame = Frame(root)
     frame.pack(pady=20)
+
+    # Create Button to display and changecurrent Mode
+    change_mode_button = Button(root, text="Mode: Route   (Change with r or c)", command=lambda: change_mode('switch'))
+    change_mode_button.pack(side='left', padx=5, pady=5) 
 
     # Create buttons
     calculate_button = Button(root, text="Calculate Path (Enter)", command=calculate_path)
@@ -464,7 +490,7 @@ def create_gui():
 
 # Function to handle click events
 def on_click(event):
-    global current_label, selection_finished
+    global current_label, selection_finished, change_mode_button
     if current_label >= len(labels) and selection_finished:  # If finished selecting, do nothing
         return
 
@@ -492,6 +518,7 @@ def on_click(event):
             # Highlight the selected node in red
             nx.draw_networkx_nodes(G, pos, nodelist=[closest_node], node_color='r', node_size=500)
             fig.canvas.draw()
+    
 
 # Function to handle key press events
 def on_key(event):
@@ -504,6 +531,8 @@ def on_key(event):
         reset_plot() # Reset current selections and reset plot
     elif event.key == 'u':
         upload_csv() # Upload csv
+    elif event.key == 'r' or event.key == 'c':
+        change_mode(event.key)
 
 
 
