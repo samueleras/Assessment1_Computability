@@ -41,10 +41,7 @@ def find_shortest_path_dijkstras(matrix, start, end):
                 heapq.heappush(open_set, (tentative_g_score, neighbor))
 
     best_route = index_to_char(best_route)
-    print("Best route found:", " -> ".join(best_route))
-    draw_route_into_graph(best_route,'red', f"Shortest Path from {index_to_char(start)} to {index_to_char(end)}")
-
-    return None  # No path found
+    return best_route
 
 # Helper function to reconstruct the path
 def reconstruct_path(came_from, current):
@@ -109,7 +106,7 @@ def find_odd_degree_vertices(mst_edges, selected_points):
         # Increase the degree for both vertices connected by the edge
         vertex_degree[u] += 1
         vertex_degree[v] += 1
-    
+        
     # Identify vertices with odd degrees
     odd_degree_vertices = [vertex for vertex, degree in vertex_degree.items() if degree % 2 == 1]
     
@@ -195,6 +192,11 @@ def eulerian_to_hamiltonian(eulerian_circuit):
 
 # Travelling Salesman Problem. Shortest path from A to B while traversing preselected nodes
 def find_circular_route(matrix, selected_points):
+    start_index, end_index, pickup_indicies = get_selected_points(selected_points)
+
+    # The route from School back to Taxi is fixed
+    # First compute the shortest Route School->Taxi
+    find_shortest_path_dijkstras(matrix, start_index, end_index)
 
     #Build MST with prims algorithm
     mst_edges, total_cost = prims_algorithm(matrix, selected_points)
@@ -285,7 +287,9 @@ def calculate_path():
         if pickup_indices:
             find_circular_route(adj_matrix_algo, selected_points)
         else: 
-            find_shortest_path_dijkstras(adj_matrix_algo, start_index, end_index)
+            best_route = find_shortest_path_dijkstras(adj_matrix_algo, start_index, end_index)
+            print("Best route found:", " -> ".join(best_route))
+            draw_route_into_graph(best_route,'red', f"Shortest Path from {index_to_char(start)} to {index_to_char(end)}")
 
 
 def initialize_variables():
