@@ -9,6 +9,7 @@ import shutil
 import numpy as np
 from collections import defaultdict
 import itertools
+from Held-Karp-Algo import tsp, floyd_warshall
 
 # Dijkstra's Algorithm for shortest path from point A to B without selected pickup points in between
 def find_shortest_path_dijkstras(matrix, start, end):
@@ -112,7 +113,7 @@ def find_odd_degree_vertices(mst_edges, selected_points):
     
     return odd_degree_vertices
 
-# Use of a greedy approach to find the minimum cost perfect matching
+# Use of a greedy approach to find the minimum cost perfect matching (Optimized)
 def minimum_cost_perfect_matching_greedy(matrix, odd_vertices, mst_edges):
     odd_vertices_count = len(odd_vertices)
     matched_left = [-1] * odd_vertices_count  # Tracks matches for left vertices
@@ -144,6 +145,7 @@ def minimum_cost_perfect_matching_greedy(matrix, odd_vertices, mst_edges):
 
     return mst_edges_to_add
 
+# Not used
 def hungarian_algorithm(cost_matrix):
     n = len(cost_matrix)
     label_left = [0] * n
@@ -185,6 +187,7 @@ def hungarian_algorithm(cost_matrix):
     
     return match_left, match_right
 
+# Not Used (in combination with hungarian)
 def minimum_cost_perfect_matching(matrix, odd_vertices, mst_edges):
     odd_vertices_count = len(odd_vertices)
     cost_matrix = np.zeros((odd_vertices_count, odd_vertices_count))
@@ -314,6 +317,9 @@ def find_circular_route(matrix, selected_points):
     hamiltonian_circuit.append((hamiltonian_circuit[0]))  # Add the last point back to the first point
     print("Hamiltonian circuit: ", hamiltonian_circuit)
     draw_route_into_graph(hamiltonian_circuit, 'green', f"Shortest Path {"Best route found: "}{" -> ".join(hamiltonian_circuit)}", circuit=True)
+
+    # Finding the shortest path between points
+    best_cost, best_path = tsp(matrix, points, start, end)
 
     return None
 
