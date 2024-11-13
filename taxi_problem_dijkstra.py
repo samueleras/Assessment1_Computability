@@ -113,20 +113,97 @@ def find_odd_degree_vertices(mst_edges, selected_points):
     return odd_degree_vertices
 
 # Use of a greedy approach to find the minimum cost perfect matching
+def minimum_cost_perfect_matching_greedy(matrix, odd_vertices, mst_edges):
+    odd_vertices_count = len(odd_vertices)
+    matched_left = [-1] * odd_vertices_count  # Tracks matches for left vertices
+    matched_right = [-1] * odd_vertices_count  # Tracks matches for right vertices
+    mst_edges_to_add = []
+
+    # Create a cost matrix for the odd-degree vertices
+    cost_matrix = np.zeros((odd_vertices_count, odd_vertices_count))
+    vertex_to_index = {v: i for i, v in enumerate(odd_vertices)}
+
+    for i in range(odd_vertices_count):
+        for j in range(odd_vertices_count):
+            if i != j:
+                u, v = odd_vertices[i], odd_vertices[j]
+                cost_matrix[i, j] = matrix[u][v]
+
+    # Greedily match vertices based on the minimum cost
+    for i in range(odd_vertices_count):
+        min_cost = float('inf')
+        best_match = -1
+        for j in range(odd_vertices_count):
+            if i != j and matched_right[j] == -1 and cost_matrix[i][j] < min_cost:
+                min_cost = cost_matrix[i][j]
+                best_match = j
+        if best_match != -1:
+            matched_left[i] = best_match
+            matched_right[best_match] = i
+            mst_edges_to_add.append((odd_vertices[i], odd_vertices[best_match], min_cost))
+
+    return mst_edges_to_add
+
+def hungarian_algorithm(cost_matrix):
+    n = len(cost_matrix)
+    label_left = [0] * n
+    label_right = [0] * n
+    match_left = [-1] * n
+    match_right = [-1] * n
+
+    def bfs():
+        dist = [-1] * n
+        prev = [-1] * n
+        queue = []
+        
+        for i in range(n):
+            if match_left[i] == -1:
+                dist[i] = 0
+                queue.append(i)
+        
+        found_augmenting_path = False
+        for u in queue:
+            for v in range(n):
+                if dist[v] == -1 and cost_matrix[u][v] - label_left[u] - label_right[v] == 0:
+                    dist[v] = dist[u] + 1
+                    prev[v] = u
+                    if match_right[v] == -1:
+                        found_augmenting_path = True
+                        x = v
+                        while x != -1:
+                            y = prev[x]
+                            match_right[x] = y
+                            match_left[y] = x
+                            x = match_left[y]
+                        break
+                    else:
+                        queue.append(match_right[v])
+        return found_augmenting_path
+    
+    while bfs():
+        pass
+    
+    return match_left, match_right
+
 def minimum_cost_perfect_matching(matrix, odd_vertices, mst_edges):
-    min_cost_matching = []
-    min_cost = float('inf')
+    odd_vertices_count = len(odd_vertices)
+    cost_matrix = np.zeros((odd_vertices_count, odd_vertices_count))
 
-    # Find all pairs of odd vertices
-    pairs = list(itertools.combinations(odd_vertices, 2))
+    # Create a map to convert odd vertices to indices in the cost matrix
+    vertex_to_index = {v: i for i, v in enumerate(odd_vertices)}
 
-    # Check all possible matchings
-    for matching in itertools.combinations(pairs, len(odd_vertices) // 2):
-        if len(set([v for pair in matching for v in pair])) == len(odd_vertices):  # Ensure perfect matching
-            cost = sum(matrix[u][v] for u, v in matching)
-            if cost < min_cost:
-                min_cost = cost
-                min_cost_matching = [(u, v, matrix[u][v]) for u, v in matching]
+    # Create the cost matrix with the appropriate costs
+    for i in range(odd_vertices_count):
+        for j in range(odd_vertices_count):
+            if i != j:  # Ensure no vertex matches with itself
+                u, v = odd_vertices[i], odd_vertices[j]
+                cost_matrix[i, j] = matrix[u][v]
+
+    match_left, match_right = hungarian_algorithm(cost_matrix)
+    
+    # Create the matching result in the required format (u, v, cost)
+    min_cost_matching = [(odd_vertices[match_left[i]], odd_vertices[match_right[i]], cost_matrix[match_left[i], match_right[i]]) 
+                         for i in range(odd_vertices_count) if match_left[i] != match_right[i]]  # Exclude invalid (u, u) pairs
 
     return min_cost_matching
 
@@ -196,8 +273,8 @@ def find_circular_route(matrix, selected_points):
 
     # The route from School back to Taxi is fixed
     # First compute the shortest Route School->Taxi
-    find_shortest_path_dijkstras(matrix, start_index, end_index)
-
+    route_school_taxi = find_shortest_path_dijkstras(matrix, start_index, end_index)
+    print("The Shortest Route from School to Taxi is: ", route_school_taxi)
     #Build MST with prims algorithm
     mst_edges, total_cost = prims_algorithm(matrix, selected_points)
     print("Edges in the Minimum Spanning Tree:")
@@ -210,20 +287,20 @@ def find_circular_route(matrix, selected_points):
     # Odd Degree vertices of MST
     odd_vertices = find_odd_degree_vertices(mst_edges, selected_points)
     # As long as there are odd vertices add edges
-    while odd_vertices:
-        print("Vertices with odd degrees:", odd_vertices)
+    #while odd_vertices:
+    print("Vertices with odd degrees:", odd_vertices)
 
-        # Find minimum-cost perfect matching for odd vertices
-        matching = minimum_cost_perfect_matching(matrix, odd_vertices, mst_edges)
-        print("Minimum-cost perfect matching:", matching)
+    # Find minimum-cost perfect matching for odd vertices
+    matching = minimum_cost_perfect_matching_greedy(matrix, odd_vertices, mst_edges)
+    print("Minimum-cost perfect matching:", matching)
 
-        # Combine MST and matching to form the multigraph
-        multigraph_edges_with_weights = mst_edges + matching   
-        print("Combined edges in the multigraph (MST + Matching):")
-        for u, v, weight in multigraph_edges_with_weights:
-            print(f"{u} -- {v} (Weight: {weight})")
-        
-        odd_vertices = find_odd_degree_vertices(multigraph_edges_with_weights, selected_points)
+    # Combine MST and matching to form the multigraph
+    multigraph_edges_with_weights = mst_edges + matching   
+    print("Combined edges in the multigraph (MST + Matching):")
+    for u, v, weight in multigraph_edges_with_weights:
+        print(f"{u} -- {v} (Weight: {weight})")
+    
+    odd_vertices = find_odd_degree_vertices(multigraph_edges_with_weights, selected_points)
 
     draw_route_into_graph(multigraph_edges_with_weights, 'blue', "Multigraph with even-degree vertices")
 
