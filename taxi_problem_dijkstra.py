@@ -435,6 +435,9 @@ def reset_plot():
     initialize_variables()
     # Clear the current axes and redraw the graph
     ax.clear()  # Clear the axes before redrawing
+    # Set the color of all nodes to 'skyblue'
+    for node in G.nodes:
+        G.nodes[node]['color'] = 'skyblue'
     nx.draw(G, pos,with_labels=True, node_color='skyblue', node_size=500, ax=ax)
     # Draw edge labels (distances)
     edge_labels = nx.get_edge_attributes(G, 'weight')
