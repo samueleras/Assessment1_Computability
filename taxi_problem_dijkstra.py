@@ -334,9 +334,28 @@ def find_circular_route(matrix, selected_points):
     print("Hamiltonian circuit: ", hamiltonian_circuit)
     draw_route_into_graph(hamiltonian_circuit, 'green', f"Shortest Path {"Best route found: "}{" -> ".join(hamiltonian_circuit)}", route_name='hamiltonian')
 
-    start_index, end_index, pickup_indicies = get_selected_points(selected_points)
+    # Use on each edge djirkas Algorithm to find shortcuts
+    hamiltonian_edges = convert_to_edges(hamiltonian_circuit)
+
+    hamilton_with_shortcut = []
+    for edge in hamiltonian_edges:
+        start, end = edge
+        print(f"Start: {start} End: {end}")
+        shortcut= find_shortest_path_dijkstras(matrix, char_to_index(start), char_to_index(end))
+        print(f"Found Shortcut: {shortcut}")
+        for node in shortcut:
+            hamilton_with_shortcut.append(node)
+
+    # remove consecutive duplicates
+    result_hamilton_shortcut = [hamilton_with_shortcut[i] for i in range(1, len(hamilton_with_shortcut)) if hamilton_with_shortcut[i] != hamilton_with_shortcut[i-1]]
+    result_hamilton_shortcut = [hamilton_with_shortcut[0]] + result_hamilton_shortcut  # Add the first element back, as it was excluded
+    print("Hamilton with shortcut: ", result_hamilton_shortcut)
+    draw_route_into_graph(result_hamilton_shortcut, 'r', f"Hamiltonian with Dijerkas: ", route_name='hamilton_dijerka')
+
+
 
     # Finding the shortest path between points while traversing
+    start_index, end_index, pickup_indicies = get_selected_points(selected_points)
     best_cost, best_path = tsp(matrix, pickup_indicies, start_index, end_index)
     best_path = index_to_char(best_path)
     print("Held Karp: ", best_cost, best_path)
@@ -616,6 +635,9 @@ def create_gui():
 
     show_hamiltonian_button = Button(root, text="Hamiltonian", command=lambda: draw_route_into_graph(dic_routes['hamiltonian'], plot_text='Hamiltonian Circuit'))
     show_hamiltonian_button.pack(side='left', padx=5, pady=5)
+
+    show_hamilton_dijerka_button = Button(root, text="hamilton_dijerka", command=lambda: draw_route_into_graph(dic_routes['hamilton_dijerka'], plot_text='Hamiltonian optimized with Dijerka'))
+    show_hamilton_dijerka_button.pack(side='left', padx=5, pady=5)
 
     global fig, ax
     fig, ax = plt.subplots(figsize=(12, 8))  # Set figure size
