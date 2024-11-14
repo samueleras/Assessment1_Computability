@@ -546,31 +546,48 @@ def calculate_total_edge_weight(edges):
 # Draw a route onto an existing graph and highlighting it
 def draw_route_into_graph(route, color='red', plot_text=None, draw_labels=True, circuit=False):
     """
+    Draws a graph and highlights a specific route (edges), showing only the weights for the highlighted edges.
+    
     Parameters:
-    - route (list): A route in one of the following formats:
-        1. [(A, B, weight), (B, C, weight)] - with weights
-        2. [(A, B), (B, C)] - without weights
-        3. ['A', 'B', 'C', 'D'] - as a list of nodes
-    - color (str): The color to use for the highlighted route (default is 'red').
-    - plot_text (str): Optional title for the plot (default is None).
-    - draw_labels (bool): Optional draw the weights to the edges (default is True).
+    - route (list): A list of edges to highlight. E.g., [('A', 'B'), ('B', 'C')].
+    - color (str): Color for the highlighted edges. Default is 'red'.
+    - plot_text (str): Optional text to display in the title. Default is None.
+    - draw_labels (bool): Whether to display edge labels (weights). Default is True.
+    - circuit (bool): Whether the route should be treated as a circuit (cycle). Default is False.
     """
+    # Convert the route to edges if needed (e.g., with weights or circuit)
     route = convert_to_edges(route, circuit)
 
-    # Clear the current axes and redraw the graph
-    ax.clear()  # Clear the axes before redrawing
-    nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=500, ax=ax)
-    # Draw edge labels (distances)
-    edge_labels = nx.get_edge_attributes(G, 'weight')
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8, ax=ax)
-    # Highlight the specified route (edges only) with the chosen color
+    # Save current node colors (for later use)
+    node_colors = [node_color for node_color in nx.get_node_attributes(G, 'color').values()]
+    
+    # Draw the base graph with nodes and edges, preserving the node colors
+    nx.draw(G, pos, with_labels=False, node_color=node_colors, node_size=500, ax=ax)
+
+    # Highlight the specified route (edges) with the given color
     nx.draw_networkx_edges(G, pos, edgelist=route, edge_color=color, width=2.5, ax=ax)
 
+    # Draw all edge labels (weights) only if required
+    if draw_labels:
+        edge_labels = nx.get_edge_attributes(G, 'weight')
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8, ax=ax)
+
+    # Highlight the specified route (edges) with the given color
+    nx.draw_networkx_edges(G, pos, edgelist=route, edge_color=color, width=2.5, ax=ax)
+
+    # Draw only the edge labels for the highlighted route
+    if draw_labels:
+        highlighted_edge_labels = {edge: G[edge[0]][edge[1]]['weight'] for edge in route}
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=highlighted_edge_labels, font_size=8, ax=ax)
+
+    # Calculate the total cost of the route (sum of the weights)
     total_cost = calculate_total_edge_weight(route)
-    plot_text = plot_text + '\n' + "Total Cost: " + str(total_cost)
-    # Add an optional plot title if specified
-    if plot_text:
-        ax.set_title(plot_text)
+
+    # Set the title, including the total cost, if provided
+    plot_text = (f"{plot_text}\nTotal Cost: {total_cost}" if plot_text else f"Total Cost: {total_cost}")
+    ax.set_title(plot_text)
+
+    # Redraw the plot
     plt.draw()
 
 def create_gui():
@@ -628,21 +645,38 @@ def on_click(event):
             min_dist = dist
             closest_node = node
 
-    # Add the closest node to the selected points
+    # If a node was found, proceed with labeling and coloring
     if closest_node is not None:
-        if current_label < 2:  # For start and finish
-            selected_points.append(closest_node)
+        selected_points.append(closest_node)
+
+        if current_label == 0:  # Label and highlight the "start" point (School)
             print(f'Selected {labels[current_label]} point: {closest_node}')
-            current_label += 1
-            # Highlight the selected node in green
-            nx.draw_networkx_nodes(G, pos, nodelist=[closest_node], node_color='g', node_size=500)
-            fig.canvas.draw()
-        else:  # For pickup/drop-off points
-            selected_points.append(closest_node)
+            nx.draw_networkx_nodes(G, pos, nodelist=[closest_node], node_color='green', node_size=500)
+            x, y = pos[closest_node]
+            plt.text(
+                x, y + 0.08, 'Taxi',
+                horizontalalignment='center',
+                fontweight='bold',
+                bbox=dict(facecolor='lightgrey', edgecolor='black', boxstyle='round,pad=0.5')
+            )
+            current_label = 1
+
+        elif current_label == 1:  # Label and highlight the "finish" point
+            print(f'Selected {labels[current_label]} point: {closest_node}')
+            nx.draw_networkx_nodes(G, pos, nodelist=[closest_node], node_color='b', node_size=500)
+            x, y = pos[closest_node]
+            plt.text(
+                x, y + 0.08, 'School',
+                horizontalalignment='center',
+                fontweight='bold',
+                bbox=dict(facecolor='lightgrey', edgecolor='black', boxstyle='round,pad=0.5')
+            )
+            current_label = 2
+
+        else:  # Label and highlight any additional points as pickup/drop-off points
             print(f'Selected pickup/drop-off point: {closest_node}')
-            # Highlight the selected node in red
             nx.draw_networkx_nodes(G, pos, nodelist=[closest_node], node_color='r', node_size=500)
-            fig.canvas.draw()
+    plt.draw()
     
 
 # Function to handle key press events
