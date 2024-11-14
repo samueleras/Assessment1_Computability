@@ -565,7 +565,7 @@ def calculate_total_edge_weight(edges):
     return total_weight
 
 # Draw a route onto an existing graph and highlighting it
-def draw_route_into_graph(route, color='r', plot_text=None, circuit = True, route_name=None):
+def draw_route_into_graph(route, color='orange', plot_text=None, circuit = True, route_name=None):
     global node_texts, dic_routes
 
     ax.clear()
@@ -636,7 +636,7 @@ def create_gui():
     show_hamiltonian_button = Button(root, text="Hamiltonian", command=lambda: draw_route_into_graph(dic_routes['hamiltonian'], plot_text='Hamiltonian Circuit'))
     show_hamiltonian_button.pack(side='left', padx=5, pady=5)
 
-    show_hamilton_dijerka_button = Button(root, text="hamilton_dijerka", command=lambda: draw_route_into_graph(dic_routes['hamilton_dijerka'], plot_text='Hamiltonian optimized with Dijerka'))
+    show_hamilton_dijerka_button = Button(root, text="hamilton_dijerka", command=lambda: draw_route_into_graph(dic_routes['hamilton_dijerka'], plot_text='Hamiltonian tried to optimized with Dijerka'))
     show_hamilton_dijerka_button.pack(side='left', padx=5, pady=5)
 
     global fig, ax
@@ -670,6 +670,11 @@ def on_click(event):
         if dist < min_dist:
             min_dist = dist
             closest_node = node
+    
+    if closest_node in selected_points:
+        plt.title("Node already selected! Choose another one: ")
+        plt.draw()
+        return
 
     # If a node was found, proceed with labeling and coloring
     if closest_node is not None:
