@@ -9,7 +9,7 @@ import shutil
 import numpy as np
 from collections import defaultdict
 import itertools
-from Held-Karp-Algo import tsp, floyd_warshall
+from Held_Karp_Algo import tsp
 
 # Dijkstra's Algorithm for shortest path from point A to B without selected pickup points in between
 def find_shortest_path_dijkstras(matrix, start, end):
@@ -113,7 +113,8 @@ def find_odd_degree_vertices(mst_edges, selected_points):
     
     return odd_degree_vertices
 
-# Use of a greedy approach to find the minimum cost perfect matching (Optimized)
+# Use of a greedy approach to find the minimum cost perfect matching (Optimized but doesnt find the optimal solution)
+# Hungarian should be used
 def minimum_cost_perfect_matching_greedy(matrix, odd_vertices, mst_edges):
     odd_vertices_count = len(odd_vertices)
     matched_left = [-1] * odd_vertices_count  # Tracks matches for left vertices
@@ -144,6 +145,23 @@ def minimum_cost_perfect_matching_greedy(matrix, odd_vertices, mst_edges):
             mst_edges_to_add.append((odd_vertices[i], odd_vertices[best_match], min_cost))
 
     return mst_edges_to_add
+
+def minimum_cost_perfect_matching_brute(matrix, odd_vertices, mst_edges):
+    min_cost_matching = []
+    min_cost = float('inf')
+
+    # Find all pairs of odd vertices
+    pairs = list(itertools.combinations(odd_vertices, 2))
+
+    # Check all possible matchings
+    for matching in itertools.combinations(pairs, len(odd_vertices) // 2):
+        if len(set([v for pair in matching for v in pair])) == len(odd_vertices):  # Ensure perfect matching
+            cost = sum(matrix[u][v] for u, v in matching)
+            if cost < min_cost:
+                min_cost = cost
+                min_cost_matching = [(u, v, matrix[u][v]) for u, v in matching]
+
+    return min_cost_matching
 
 # Not used
 def hungarian_algorithm(cost_matrix):
@@ -272,12 +290,7 @@ def eulerian_to_hamiltonian(eulerian_circuit):
 
 # Travelling Salesman Problem. Shortest path from A to B while traversing preselected nodes
 def find_circular_route(matrix, selected_points):
-    start_index, end_index, pickup_indicies = get_selected_points(selected_points)
 
-    # The route from School back to Taxi is fixed
-    # First compute the shortest Route School->Taxi
-    route_school_taxi = find_shortest_path_dijkstras(matrix, start_index, end_index)
-    print("The Shortest Route from School to Taxi is: ", route_school_taxi)
     #Build MST with prims algorithm
     mst_edges, total_cost = prims_algorithm(matrix, selected_points)
     print("Edges in the Minimum Spanning Tree:")
@@ -287,23 +300,26 @@ def find_circular_route(matrix, selected_points):
     # Draw the MST into the graph
     draw_route_into_graph(mst_edges, 'green', f"Minimum spanning tree\n Total cost: {total_cost}" )
 
+
     # Odd Degree vertices of MST
     odd_vertices = find_odd_degree_vertices(mst_edges, selected_points)
     # As long as there are odd vertices add edges
-    #while odd_vertices:
-    print("Vertices with odd degrees:", odd_vertices)
+    counter = 0
+    while odd_vertices and counter < 5:
+        counter += 1
+        print("Vertices with odd degrees:", odd_vertices)
 
-    # Find minimum-cost perfect matching for odd vertices
-    matching = minimum_cost_perfect_matching_greedy(matrix, odd_vertices, mst_edges)
-    print("Minimum-cost perfect matching:", matching)
+        # Find minimum-cost perfect matching for odd vertices
+        matching = minimum_cost_perfect_matching_brute(matrix, odd_vertices, mst_edges)
+        print("Minimum-cost perfect matching:", matching)
 
-    # Combine MST and matching to form the multigraph
-    multigraph_edges_with_weights = mst_edges + matching   
-    print("Combined edges in the multigraph (MST + Matching):")
-    for u, v, weight in multigraph_edges_with_weights:
-        print(f"{u} -- {v} (Weight: {weight})")
-    
-    odd_vertices = find_odd_degree_vertices(multigraph_edges_with_weights, selected_points)
+        # Combine MST and matching to form the multigraph
+        multigraph_edges_with_weights = mst_edges + matching   
+        print("Combined edges in the multigraph (MST + Matching):")
+        for u, v, weight in multigraph_edges_with_weights:
+            print(f"{u} -- {v} (Weight: {weight})")
+        
+        odd_vertices = find_odd_degree_vertices(multigraph_edges_with_weights, selected_points)
 
     draw_route_into_graph(multigraph_edges_with_weights, 'blue', "Multigraph with even-degree vertices")
 
@@ -318,8 +334,17 @@ def find_circular_route(matrix, selected_points):
     print("Hamiltonian circuit: ", hamiltonian_circuit)
     draw_route_into_graph(hamiltonian_circuit, 'green', f"Shortest Path {"Best route found: "}{" -> ".join(hamiltonian_circuit)}", circuit=True)
 
-    # Finding the shortest path between points
-    best_cost, best_path = tsp(matrix, points, start, end)
+    start_index, end_index, pickup_indicies = get_selected_points(selected_points)
+
+    # Finding the shortest path between points while traversing
+    best_cost, best_path = tsp(matrix, pickup_indicies, start_index, end_index)
+    best_path = index_to_char(best_path)
+    print("Held Karp: ", best_cost, best_path)
+    print(selected_points)
+    # Adding the return from end to start
+    # The route from School back to Taxi is fixed so add it to the shortest path
+    route_school_taxi = find_shortest_path_dijkstras(matrix, start_index, end_index)
+    print("The Shortest Route from School to Taxi is: ", route_school_taxi)
 
     return None
 
@@ -372,7 +397,7 @@ def calculate_path():
         else: 
             best_route = find_shortest_path_dijkstras(adj_matrix_algo, start_index, end_index)
             print("Best route found:", " -> ".join(best_route))
-            draw_route_into_graph(best_route,'red', f"Shortest Path from {index_to_char(start)} to {index_to_char(end)}")
+            draw_route_into_graph(best_route,'red', f"Shortest Path from {index_to_char(start_index)} to {index_to_char(end_index)}")
 
 
 def initialize_variables():
