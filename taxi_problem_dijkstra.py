@@ -326,7 +326,7 @@ def find_circular_route(matrix, selected_points):
     # Euler tour is route that might visit one node multiple times
     euler_tour = find_eulerian_circuit(multigraph_edges_with_weights)
     print("Euler tour: ", euler_tour)
-    draw_route_into_graph(euler_tour, 'orange', "Eulerian tour", circuit=True)
+    draw_route_into_graph(euler_tour, 'orange', "Eulerian tour")
 
     # Hamiltonian Circuit bypasses the multiple accessed node so that every node gets visisted exactly once
     hamiltonian_circuit = eulerian_to_hamiltonian(euler_tour)
@@ -414,7 +414,7 @@ def reset_plot():
     initialize_variables()
     # Clear the current axes and redraw the graph
     ax.clear()  # Clear the axes before redrawing
-    nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=500, ax=ax)
+    nx.draw(G, pos,with_labels=True, node_color='skyblue', node_size=500, ax=ax)
     # Draw edge labels (distances)
     edge_labels = nx.get_edge_attributes(G, 'weight')
     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
@@ -471,7 +471,7 @@ def create_graph():
     print("Available nodes in the graph:", G.nodes)
 
 def change_mode(mode):
-    global change_mode_button
+    global change_mode_button, selected_modus
     text_route = "Mode: Route   (Change with R or C)"
     text_circuit = "Mode: Circuit (Change with R or C)"
     if selected_points:
@@ -504,7 +504,7 @@ def plot_graph():
     plt.draw()
 
 # Convert to edges that are drawable for networkx
-def convert_to_edges(route, circuit = False):
+def convert_to_edges(route):
     """
     Convert different route formats into a list of edges in the format [(A, B), (B, C), (C, D)].
     to be compatible with networkx
@@ -544,50 +544,31 @@ def calculate_total_edge_weight(edges):
     return total_weight
 
 # Draw a route onto an existing graph and highlighting it
-def draw_route_into_graph(route, color='red', plot_text=None, draw_labels=True, circuit=False):
-    """
-    Draws a graph and highlights a specific route (edges), showing only the weights for the highlighted edges.
-    
-    Parameters:
-    - route (list): A list of edges to highlight. E.g., [('A', 'B'), ('B', 'C')].
-    - color (str): Color for the highlighted edges. Default is 'red'.
-    - plot_text (str): Optional text to display in the title. Default is None.
-    - draw_labels (bool): Whether to display edge labels (weights). Default is True.
-    - circuit (bool): Whether the route should be treated as a circuit (cycle). Default is False.
-    """
-    # Convert the route to edges if needed (e.g., with weights or circuit)
-    route = convert_to_edges(route, circuit)
+def draw_route_into_graph(route, color='red', plot_text=None, circuit = True):
 
-    # Save current node colors (for later use)
-    node_colors = [node_color for node_color in nx.get_node_attributes(G, 'color').values()]
-    
-    # Draw the base graph with nodes and edges, preserving the node colors
-    nx.draw(G, pos, with_labels=False, node_color=node_colors, node_size=500, ax=ax)
+    # Convert the route to edges if it’s in node format
+    route_edges = convert_to_edges(route)
 
-    # Highlight the specified route (edges) with the given color
-    nx.draw_networkx_edges(G, pos, edgelist=route, edge_color=color, width=2.5, ax=ax)
+    # Clear previous drawings on the axis
+    ax.clear()
+    # Draw the graph into the empty axis
+    node_colors = nx.get_node_attributes(G, 'color')
+    # Default to 'skyblue' if a node has no color attribute set
+    default_color = 'skyblue'
+    node_color_list = [node_colors.get(node, default_color) for node in G.nodes]
+    nx.draw(G, pos, with_labels=True, node_color=node_color_list, node_size=500, ax=ax, edge_color='gray')
 
-    # Draw all edge labels (weights) only if required
-    if draw_labels:
-        edge_labels = nx.get_edge_attributes(G, 'weight')
-        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8, ax=ax)
+    # Highlight the specified route edges with the given color
+    nx.draw_networkx_edges(G, pos, edgelist=route_edges, edge_color=color, width=3, ax=ax)
 
-    # Highlight the specified route (edges) with the given color
-    nx.draw_networkx_edges(G, pos, edgelist=route, edge_color=color, width=2.5, ax=ax)
+    highlighted_edge_labels = {edge: G[edge[0]][edge[1]]['weight'] for edge in route_edges}
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=highlighted_edge_labels, font_size=8, ax=ax)
 
-    # Draw only the edge labels for the highlighted route
-    if draw_labels:
-        highlighted_edge_labels = {edge: G[edge[0]][edge[1]]['weight'] for edge in route}
-        nx.draw_networkx_edge_labels(G, pos, edge_labels=highlighted_edge_labels, font_size=8, ax=ax)
+    # Calculate the total route cost and set plot title
+    total_cost = calculate_total_edge_weight(route_edges)
+    ax.set_title(f"{plot_text}\nTotal Cost: {total_cost}" if plot_text else f"Total Cost: {total_cost}")
 
-    # Calculate the total cost of the route (sum of the weights)
-    total_cost = calculate_total_edge_weight(route)
-
-    # Set the title, including the total cost, if provided
-    plot_text = (f"{plot_text}\nTotal Cost: {total_cost}" if plot_text else f"Total Cost: {total_cost}")
-    ax.set_title(plot_text)
-
-    # Redraw the plot
+    # Render the plot
     plt.draw()
 
 def create_gui():
