@@ -340,11 +340,13 @@ def find_circular_route(matrix, selected_points):
     best_cost, best_path = tsp(matrix, pickup_indicies, start_index, end_index)
     best_path = index_to_char(best_path)
     print("Held Karp: ", best_cost, best_path)
-    print(selected_points)
+    print("Selected Points in order: ", selected_points)
     # Adding the return from end to start
     # The route from School back to Taxi is fixed so add it to the shortest path
     route_school_taxi = find_shortest_path_dijkstras(matrix, start_index, end_index)
+    cost_school_taxi = calculate_total_edge_weight(route_school_taxi)
     print("The Shortest Route from School to Taxi is: ", route_school_taxi)
+    print("The Weight is: ", cost_school_taxi)
 
     return None
 
@@ -531,7 +533,16 @@ def convert_to_edges(route, circuit = False):
         raise ValueError("Invalid route format")
     
     return edges
-    
+
+def calculate_total_edge_weight(edges):
+    edges = convert_to_edges(edges)
+    total_weight = 0
+    for edge in edges:
+        start, end = edge
+        weight = adj_matrix_algo[start][end]
+        total_weight += weight
+    return total_weight
+
 # Draw a route onto an existing graph and highlighting it
 def draw_route_into_graph(route, color='red', plot_text=None, draw_labels=True, circuit=False):
     """
@@ -555,6 +566,8 @@ def draw_route_into_graph(route, color='red', plot_text=None, draw_labels=True, 
     # Highlight the specified route (edges only) with the chosen color
     nx.draw_networkx_edges(G, pos, edgelist=route, edge_color=color, width=2.5, ax=ax)
 
+    total_cost = calculate_total_edge_weight(route)
+    plot_text = plot_text + '\n' + "Total Cost: " + str(total_cost)
     # Add an optional plot title if specified
     if plot_text:
         ax.set_title(plot_text)
