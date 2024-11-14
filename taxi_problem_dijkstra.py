@@ -298,7 +298,7 @@ def find_circular_route(matrix, selected_points):
         print(f"{u} -- {v} (Weight: {weight})")
     print(f"Total cost of the Minimum Spanning Tree: {total_cost}")
     # Draw the MST into the graph
-    draw_route_into_graph(mst_edges, 'green', f"Minimum spanning tree\n Total cost: {total_cost}" )
+    draw_route_into_graph(mst_edges, 'green', f"Minimum spanning tree\n Total cost: {total_cost}" , route_name='mst')
 
 
     # Odd Degree vertices of MST
@@ -321,18 +321,18 @@ def find_circular_route(matrix, selected_points):
         
         odd_vertices = find_odd_degree_vertices(multigraph_edges_with_weights, selected_points)
 
-    draw_route_into_graph(multigraph_edges_with_weights, 'blue', "Multigraph with even-degree vertices")
+    draw_route_into_graph(multigraph_edges_with_weights, 'blue', "Multigraph with even-degree vertices", route_name='multigraph')
 
     # Euler tour is route that might visit one node multiple times
     euler_tour = find_eulerian_circuit(multigraph_edges_with_weights)
     print("Euler tour: ", euler_tour)
-    draw_route_into_graph(euler_tour, 'orange', "Eulerian tour")
+    draw_route_into_graph(euler_tour, 'orange', "Eulerian tour", route_name='euler')
 
     # Hamiltonian Circuit bypasses the multiple accessed node so that every node gets visisted exactly once
     hamiltonian_circuit = eulerian_to_hamiltonian(euler_tour)
     hamiltonian_circuit.append((hamiltonian_circuit[0]))  # Add the last point back to the first point
     print("Hamiltonian circuit: ", hamiltonian_circuit)
-    draw_route_into_graph(hamiltonian_circuit, 'green', f"Shortest Path {"Best route found: "}{" -> ".join(hamiltonian_circuit)}", circuit=True)
+    draw_route_into_graph(hamiltonian_circuit, 'green', f"Shortest Path {"Best route found: "}{" -> ".join(hamiltonian_circuit)}", route_name='hamiltonian')
 
     start_index, end_index, pickup_indicies = get_selected_points(selected_points)
 
@@ -403,13 +403,14 @@ def calculate_path():
 
 
 def initialize_variables():
-    global selected_points, labels, current_label, selection_finished, selected_modus, node_texts
+    global selected_points, labels, current_label, selection_finished, selected_modus, node_texts, dic_routes
     selected_modus = 'route' # Start modus # or 'circuit'
     selected_points = []
     labels= ['start', 'finish']  # Labels for selection
     current_label = 0  # To keep track of what the user is selecting
     selection_finished = False  # Flag to indicate selection is finished
     node_texts = []
+    dic_routes = {} # Store all calculated paths
 
 def reset_plot():
     initialize_variables()
@@ -545,17 +546,20 @@ def calculate_total_edge_weight(edges):
     return total_weight
 
 # Draw a route onto an existing graph and highlighting it
-def draw_route_into_graph(route, color='red', plot_text=None, circuit = True):
-    global node_texts
+def draw_route_into_graph(route, color='r', plot_text=None, circuit = True, route_name=None):
+    global node_texts, dic_routes
+
     ax.clear()
     # Convert the route to edges if it’s in node format
     route_edges = convert_to_edges(route)
+
+    if route_name:
+        dic_routes[route_name] = route
 
     for label in ax.texts:
         label.remove()
     # Retrieve current colors from node attributes
     node_colors = [G.nodes[node].get('color', 'skyblue') for node in G.nodes]
-    print(node_colors)
 
     nx.draw(G, pos, with_labels=True, node_size=500, ax=ax, edge_color='gray', node_color=node_colors)
     # Highlight the specified route edges with the given color
@@ -600,6 +604,18 @@ def create_gui():
 
     upload_button = Button(root, text="Upload CSV (U)", command=upload_csv)
     upload_button.pack(side='left', padx=5, pady=5)
+
+    show_mst_button = Button(root, text="MST-PRIMS", command=lambda: draw_route_into_graph(dic_routes['mst'], plot_text='Minimum Spanning Tree'))
+    show_mst_button.pack(side='left', padx=5, pady=5)
+
+    show_matching_button = Button(root, text="Multigraph", command=lambda: draw_route_into_graph(dic_routes['multigraph'], plot_text='Multigraph'))
+    show_matching_button.pack(side='left', padx=5, pady=5)
+
+    show_euler_button = Button(root, text="Euler Tour", command=lambda: draw_route_into_graph(dic_routes['euler'], plot_text='Euler Circuit'))
+    show_euler_button.pack(side='left', padx=5, pady=5)
+
+    show_hamiltonian_button = Button(root, text="Hamiltonian", command=lambda: draw_route_into_graph(dic_routes['hamiltonian'], plot_text='Hamiltonian Circuit'))
+    show_hamiltonian_button.pack(side='left', padx=5, pady=5)
 
     global fig, ax
     fig, ax = plt.subplots(figsize=(12, 8))  # Set figure size
