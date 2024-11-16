@@ -230,19 +230,19 @@ def minimum_cost_perfect_matching(matrix, odd_vertices, mst_edges):
 
 def edmonds_blossom(matrix, odd_vertices, mst_edges):
 
-    def find_augmenting_path(matching, node1, visited, parent, mst_edges_without_weight):
+    def find_augmenting_path(matching, node1, visited, parent, mst_edges_without_weight, matrix_of_odd_vertices_without_mst_edges):
         queue = [node1]
         visited[node1] = True
 
         while queue:
             currentNode = queue.pop(0)
 
-            for neighbour in odd_vertices:
+            for neighbour, weight in enumerate(matrix_of_odd_vertices_without_mst_edges[currentNode]):
                 #Check if neighbour is not visited and exclude edges that are part of the mst
                 print("######### find path ########")
                 print("test curr:", index_to_char(currentNode), " neighbour:", index_to_char(neighbour))
                 print("visited: ", visited)
-                if (index_to_char(neighbour), index_to_char(currentNode)) not in mst_edges_without_weight and (index_to_char(currentNode), index_to_char(neighbour)) not in mst_edges_without_weight and not visited[neighbour] and neighbour != currentNode:  
+                if weight != float('inf') and not visited[neighbour]:  
                     parent[neighbour] = currentNode    #Link current node to the neighbour for path reconstruction
                     print("parentdict: ")
                     for key, value in parent.items():
@@ -264,20 +264,17 @@ def edmonds_blossom(matrix, odd_vertices, mst_edges):
                     print("Append: ", index_to_char(matching[neighbour]), " to queue")
                     queue.append(matching[neighbour])   #Neighbour already in matching, but gets added to the queue to check all its neighbours aswell
                                                 #This continues until all nodes are visited and None is returned or until a augmented path is found and returned
-                    
         return None
     
     def augment_path(matching, parent, node):
-        while node is not None:    #v is starting node of an augmented path             Vertices with odd degrees: ['S', 'A', 'R', 'N']
+        while node is not None:    #v is starting node of an augmented path
             print("Augmenting node: ", index_to_char(node))
             print("matchings before aug: ")
             for key, value in matching.items():
                 key_char = index_to_char(key)
                 value_char = index_to_char(value) if value is not None else None
                 print(f"{key_char}: {value_char}")
-            prev = parent.get(node, None)  #get the neighbour that is linked to the node
-            if prev is None:
-                break
+            prev = parent[node] #get the neighbour that is linked to the node
             matching[node] = prev  
             matching[prev] = node  #flipping the matching status of both
             print("matchings after flip in aug: ")
@@ -291,16 +288,23 @@ def edmonds_blossom(matrix, odd_vertices, mst_edges):
 
     #Matching dictionary to track which nodes are matchings
     matching = {}
-    matching = {u: None for u in odd_vertices}
+    matching = {node: None for node in odd_vertices}
 
     mst_edges_without_weight = [(node1, node2) for node1, node2, weight in mst_edges]
+
+    #Matrix that only includes the odd_vertices without edges that are already in the mst
+    matrix_of_odd_vertices_without_mst_edges = [[float('inf')] * len(matrix) for _ in range(len(matrix))]
+    for node1 in odd_vertices:
+        for node2 in odd_vertices:
+            if node1 != node2 and (node1, node2) not in mst_edges_without_weight and (node2, node1) not in mst_edges_without_weight:
+                matrix_of_odd_vertices_without_mst_edges[node1][node2] = matrix.iloc[node1, node2]  # Include edge if it's not in the MST
 
     #Augment the matching by finding augmenting paths
     for node1 in odd_vertices:
         if matching[node1] is None:  #Free vertex
             visited = [False] * len(matrix)
             parent = {}
-            node2 = find_augmenting_path(matching, node1, visited, parent, mst_edges_without_weight)  #Find augmented path, starting with the unmatched node1
+            node2 = find_augmenting_path(matching, node1, visited, parent, mst_edges_without_weight, matrix_of_odd_vertices_without_mst_edges)  #Find augmented path, starting with the unmatched node1
             if node2 is not None:
                 augment_path(matching, parent, node2)
 
