@@ -378,100 +378,117 @@ def eulerian_to_hamiltonian(eulerian_circuit):
     return hamiltonian_circuit
 
 def finding_circular_route_in_right_order(matrix, selected_points):
-    # 1. Find the circuit only with school kids
-    # 2. Find the nearest neighbor taxi - kids
-    # 3. Try which direction is shorter counter- or clockwise to the school
-    # 4. Add way back from school to taxi
+    """
+    Steps:
+    1. Create a circuit among the kids.
+    2. Find the nearest kid to the taxi.
+    3. Determine the shorter direction (clockwise or counterclockwise) for the kids' circuit.
+    4. Add the return path from school to the taxi.
+    """
+    def find_nearest_kid(matrix, taxi_index, kids_indices):
+        """Find the nearest kid to the taxi based on weight."""
+        smallest_weight = float('inf')
+        nearest_kid_index = None
+        best_route = None
 
-    taxi_index, school_index, kids_indicies = get_selected_points(selected_points)
+        for kid in kids_indices:
+            route = find_shortest_path_dijkstras(matrix, taxi_index, kid)
+            if not route:
+                continue
+            route_weight = calculate_total_edge_weight(route)
+            if route_weight < smallest_weight:
+                smallest_weight = route_weight
+                nearest_kid_index = kid
+                best_route = route
 
-    circuit_kids = find_circular_route(matrix, index_to_char(kids_indicies))
-
-    print("Circuit kids: ", circuit_kids)
-    
-    # Find the nearest kid
-    smallest_weight_taxi_kid = 100
-    for kid in kids_indicies:
-        taxi_kid_route = find_shortest_path_dijkstras(matrix, taxi_index, kid)
-        if not taxi_kid_route:
-            continue
-        taxi_kid_weight = calculate_total_edge_weight(taxi_kid_route)
-        if taxi_kid_weight < smallest_weight_taxi_kid:
-            smallest_weight_taxi_kid = taxi_kid_weight
-            nearest_kid_index = kid
-            fastest_taxi_kid_route = taxi_kid_route
-
-    kid_char = index_to_char(nearest_kid_index)
-    print("The nearest kid is: ", kid_char)
-    print("Weight is: ", smallest_weight_taxi_kid)
+        return nearest_kid_index, smallest_weight, best_route
 
     def get_neighbors(lst, element):
-        print("List:", lst)
-        print("Element to find:", element)
-        if element in lst:
-            idx = lst.index(element)
-            print("Index of element:", idx)
+        """Find the previous and next neighbors of an element in a circular list."""
+        if element not in lst:
+            return []
+
+        idx = lst.index(element)
+        prev_elem = lst[idx - 1] if idx > 0 else lst[-1]
+        next_elem = lst[idx + 1] if idx < len(lst) - 1 else lst[0]
+        return [prev_elem, next_elem]
+    
+    def determine_best_route(matrix, circuit_kids, nearest_kid_index, neighbors, school_index, taxi_kid_route):
+        """
+        Determine the shorter direction (clockwise or counterclockwise) for the kids' circuit
+        and calculate the best route to the school.
+        """
+        best_route = None
+        best_weight = float('inf')
+        print("Circuit kids: ",circuit_kids)
+
+        edges_kids = convert_to_edges(circuit_kids)
+
+        school_taxi_route = find_shortest_path_dijkstras(matrix, school_index, taxi_index)
+        school_taxi_edges = convert_to_edges(school_taxi_route)
+
+        for neighbor in neighbors:
+            # Find the route from the neighbor to the school
+            kid_school_route = find_shortest_path_dijkstras(matrix, neighbor, school_index)
+
+            # Remove the edge connecting the nearest kid and the neighbor
+            edge_to_remove = (nearest_kid_index, neighbor)
+            reversed_edge = tuple(reversed(edge_to_remove))
+            modified_circuit = edges_kids[:]
+
+            if edge_to_remove in modified_circuit:
+                modified_circuit.remove(edge_to_remove)
+            elif reversed_edge in modified_circuit:
+                modified_circuit.remove(reversed_edge)
             
-            # Get previous element, handle first element case
-            prev_elem = lst[idx - 1] if idx > 0 else lst[-1]
-            
-            # Get next element, handle last element case by wrapping around
-            next_elem = lst[idx + 1] if idx < len(lst) - 1 else lst[0]
-            
-            print("Previous element:", prev_elem)
-            print("Next element:", next_elem)
-            
-            return [prev_elem, next_elem]
-        else:
-            return None
+            taxi_kid_edges = convert_to_edges(taxi_kid_route)
+            print("School Taxi edges: ", school_taxi_edges)
+            print("Modified: ", modified_circuit)
+            print("Kid_school_route: ", kid_school_route)
+            print("Taxi kid edges: ", taxi_kid_edges)
+            # Create the full route
+            full_route = convert_to_edges(taxi_kid_route) + modified_circuit + kid_school_route + school_taxi_edges
+            print(full_route)
+            total_weight = calculate_total_edge_weight(full_route)
 
-    # Calculate counter and clockwise and chose what is shorter in combination with total route
-    kids_neighbors_indicies = get_neighbors(kids_indicies, nearest_kid_index)
-    edges_kids = convert_to_edges(circuit_kids)
-    print("Kids edges: ", edges_kids)
+            # Update the best route if this one is better
+            if total_weight < best_weight:
+                best_route = full_route
+                best_weight = total_weight
 
-    best_route = None
-    best_weight = float('inf')  # Initialize with a large value
+        return best_route, best_weight
 
-    for kid_index in kids_neighbors_indicies:
-        kid_school_route = find_shortest_path_dijkstras(matrix, kid_index, school_index)
-        
-        # Edge to remove (considering both possible orders)
-        edge_to_remove = (nearest_kid_index, kid_index)
-        reversed_edge = tuple(reversed(edge_to_remove))
+    taxi_index, school_index, kids_indices = get_selected_points(selected_points)
 
-        # Make a copy of circuit_kids to avoid modifying the original
-        modified_circuit_kids = circuit_kids[:]
-        
-        # Check and remove the edge in either order
-        if edge_to_remove in modified_circuit_kids:
-            modified_circuit_kids.remove(edge_to_remove)
-        elif reversed_edge in modified_circuit_kids:
-            modified_circuit_kids.remove(reversed_edge)
+    # Step 1: Create a circular route for the kids
+    circuit_kids = find_circular_route(matrix, index_to_char(kids_indices))
+    print("Circuit kids:", circuit_kids)
 
-        # Create the full route
-        route_taxi_kids_school = taxi_kid_route + modified_circuit_kids + kid_school_route
-        route_weight = calculate_total_edge_weight(route_taxi_kids_school)
-        
-        print("Current route weight: ", route_weight)
-        # Check if this route is better than the current best
-        if route_weight < best_weight:
-            best_route = route_taxi_kids_school
-            best_weight = route_weight
+    # Step 2: Find the nearest kid to the taxi
+    nearest_kid_index, smallest_weight_taxi_kid, fastest_taxi_kid_route = find_nearest_kid(matrix, taxi_index, kids_indices)
+    print(f"The nearest kid is: {index_to_char(nearest_kid_index)} with weight: {smallest_weight_taxi_kid}")
 
-    # After the loop, best_route will contain the best route and best_weight the minimum weight
+    # Step 3: Find neighbors of the nearest kid in the circuit
+    kids_neighbors_indices = get_neighbors(kids_indices, nearest_kid_index)
+    print("Neighbors of the nearest kid:", kids_neighbors_indices)
+
+    # Step 4: Determine the shorter direction and calculate the best route
+    best_route, best_weight = determine_best_route(matrix, circuit_kids, nearest_kid_index, kids_neighbors_indices, school_index, fastest_taxi_kid_route)
     print("Best route:", best_route)
     print("Best route weight:", best_weight)
 
+    # Step 5: Add the way back to the taxi from the school
     circuit_taxi_kids_school = best_route + find_shortest_path_dijkstras(matrix, school_index, taxi_index)
-    circuit_taxi_kids_school = remove_consecutive_duplicates_in_edge_list( convert_to_edges(circuit_taxi_kids_school))
-    # Filter the list to remove tuples where both elements are the same
-    final_circuit_taxi_kids_school = [tup for tup in circuit_taxi_kids_school if tup[0] != tup[1]]
-    print("The best circuit is: ", final_circuit_taxi_kids_school)
+    circuit_taxi_kids_school = remove_consecutive_duplicates_in_edge_list(convert_to_edges(circuit_taxi_kids_school))
 
-    dic_routes['correct_order_circuit'] = final_circuit_taxi_kids_school
+    # Filter out invalid edges
+    final_circuit = [edge for edge in circuit_taxi_kids_school if edge[0] != edge[1]]
+    print("The best circuit is:", final_circuit)
 
-    return final_circuit_taxi_kids_school
+    # Save the result to the dictionary
+    dic_routes['correct_order_circuit'] = final_circuit
+
+    return final_circuit
 
 def remove_consecutive_duplicates_in_edge_list(lst):
     if not lst:
@@ -556,7 +573,7 @@ def find_shortcut_route(matrix, route):
     
     # Remove consecutive duplicate elements from edge_shortcuts
     result_shortcut_route = remove_consecutive_duplicates_in_edge_list(edge_shortcuts)
-    
+
     return result_shortcut_route
 
 # Function to convert characters A-Z to indices 0-25
@@ -608,10 +625,13 @@ def calculate_path():
     
     # Decide whether to search for A->B or via several pickup points
     if pickup_indices:
+        # Only execute the right order Algo if more than 5 Points are selected
         if len(selected_points) >= 5:
             circuit_right_order = finding_circular_route_in_right_order(adj_matrix_algo, selected_points)
             print("Best Circuit in right order found: ", circuit_right_order)
-            draw_route_into_graph(circuit_right_order,'red', f"Circuit with the right Order Taxi -> Kids - > School: ")
+            circuit_right_order_shortcut = find_shortcut_route(adj_matrix_algo, circuit_right_order)
+            print("Circuit with the right Order, optimized with Djerka: ", circuit_right_order_shortcut)
+            draw_route_into_graph(circuit_right_order_shortcut,'red', f"Circuit with the right Order, optimized with Djerka: ")
         else:
             hamiltonian_route = find_circular_route(adj_matrix_algo, selected_points)
             hamiltonian_shortcut = find_shortcut_route(adj_matrix_algo, hamiltonian_route)
@@ -738,33 +758,38 @@ def plot_graph():
 # Convert to edges that are drawable for networkx
 def convert_to_edges(route):
     """
-    Convert different route formats into a list of edges in the format [(A, B), (B, C), (C, D)].
-    to be compatible with networkx
+    Convert a mixed-format route into a list of edges in the format [(A, B), (B, C), (C, D)].
 
     Parameters:
-    - route (list): A route that could be in one of the following formats:
+    - route (list): A route that could be in a mix of the following formats:
         1. [(A, B, weight), (B, C, weight)] - with weights
         2. [(A, B), (B, C)] - without weights
         3. ['A', 'B', 'C', 'D'] - a list of nodes
+        4. A combination of the above formats
 
     Returns:
-    - edges (list): A list of edges in the format [(A, B), (B, C), (C, D)].
+    - edges (list): A cleaned list of edges in the format [(A, B), (B, C), (C, D)].
     """
-    if isinstance(route[0], tuple):
-        # Case 1 & 2: Route is a list of tuples
-        if len(route[0]) == 3:
-            # If tuples have 3 elements, they include weights, so ignore the weight
-            edges = [(edge[0], edge[1]) for edge in route]
-        else:
-            # If tuples have 2 elements, they are already in the correct format
-            edges = route
-    elif isinstance(route[0], str):
-        # Case 3: Route is a list of nodes (strings), convert to edges
-        edges = [(route[i], route[i + 1]) for i in range(len(route) - 1)]
-    else:
-        raise ValueError("Invalid route format")
+    edges = []  # Store the final list of edges
+    previous_node = None  # To connect isolated nodes
     
+    for element in route:
+        if isinstance(element, tuple):
+            # Handle cases (1) and (2)
+            if len(element) >= 2:
+                edges.append((element[0], element[1]))
+            else:
+                raise ValueError("Tuple elements must have at least 2 values (A, B).")
+        elif isinstance(element, str):
+            # Handle isolated nodes
+            if previous_node is not None:
+                edges.append((previous_node, element))
+            previous_node = element
+        else:
+            raise ValueError(f"Invalid route element type: {type(element)}")
+
     return edges
+
 
 def convert_edges_to_route(edges):
     route = []
