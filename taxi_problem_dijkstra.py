@@ -385,8 +385,8 @@ def find_circular_route(matrix, selected_points):
     for u, v, weight in mst_edges:
         print(f"{u} -- {v} (Weight: {weight})")
     print(f"Total cost of the Minimum Spanning Tree: {total_cost}")
-    # Draw the MST into the graph
-    draw_route_into_graph(mst_edges, 'green', f"Minimum spanning tree" , route_name='mst')
+    #Save route to dic
+    dic_routes['mst'] = mst_edges
 
 
     # Odd Degree vertices of MST
@@ -411,19 +411,21 @@ def find_circular_route(matrix, selected_points):
         if not odd_vertices:
             print("No vertices with odd degrees")
     
-
-    draw_route_into_graph(multigraph_edges_with_weights, 'blue', "Multigraph with even-degree vertices", route_name='multigraph')
+    #Save route to dic
+    dic_routes['multigraph'] = multigraph_edges_with_weights
 
     # Euler tour is route that might visit one node multiple times
     euler_tour = find_eulerian_circuit(multigraph_edges_with_weights)
     print("Euler tour: ", euler_tour)
-    draw_route_into_graph(euler_tour, 'orange', "Eulerian tour", route_name='euler')
+    #Save route to dic
+    dic_routes['euler'] = euler_tour
 
     # Hamiltonian Circuit bypasses the multiple accessed node so that every node gets visisted exactly once
     hamiltonian_circuit = eulerian_to_hamiltonian(euler_tour)
     hamiltonian_circuit.append((hamiltonian_circuit[0]))  # Add the last point back to the first point
     print("Hamiltonian circuit: ", hamiltonian_circuit)
-    draw_route_into_graph(hamiltonian_circuit, 'green', f"Shortest Path {"Best route found: "}{" -> ".join(hamiltonian_circuit)}", route_name='hamiltonian')
+    #Save route to dic
+    dic_routes['hamiltonian'] = hamiltonian_circuit
 
     # Use on each edge djirkas Algorithm to find shortcuts
     hamiltonian_edges = convert_to_edges(hamiltonian_circuit)
@@ -441,7 +443,9 @@ def find_circular_route(matrix, selected_points):
     result_hamilton_shortcut = [hamilton_with_shortcut[i] for i in range(1, len(hamilton_with_shortcut)) if hamilton_with_shortcut[i] != hamilton_with_shortcut[i-1]]
     result_hamilton_shortcut = [hamilton_with_shortcut[0]] + result_hamilton_shortcut  # Add the first element back, as it was excluded
     print("Hamilton with shortcut: ", result_hamilton_shortcut)
-    draw_route_into_graph(result_hamilton_shortcut, 'r', f"Hamiltonian with Dijerkas: ", route_name='hamilton_dijerka')
+    #Save route to dic
+    dic_routes['hamilton_dijerka'] = result_hamilton_shortcut
+    draw_route_into_graph(dic_routes['hamilton_dijerka'], color="red", plot_text='Hamiltonian tried to optimized with Dijerka')
 
 
     """ 
@@ -663,15 +667,12 @@ def calculate_total_edge_weight(edges):
     return total_weight
 
 # Draw a route onto an existing graph and highlighting it
-def draw_route_into_graph(route, color='orange', plot_text=None, route_name=None):
+def draw_route_into_graph(route, color='orange', plot_text=None):
     global node_texts, dic_routes
 
     ax.clear()
     # Convert the route to edges if it’s in node format
     route_edges = convert_to_edges(route)
-
-    if route_name:
-        dic_routes[route_name] = route
 
     for label in ax.texts:
         label.remove()
@@ -728,13 +729,13 @@ def create_gui():
     show_matching_button = Button(root, text="Multigraph", command=lambda: draw_route_into_graph(dic_routes['multigraph'], plot_text='Multigraph'))
     show_matching_button.pack(side='left', padx=5, pady=5)
 
-    show_euler_button = Button(root, text="Euler Tour", command=lambda: draw_route_into_graph(dic_routes['euler'], plot_text='Euler Circuit'))
+    show_euler_button = Button(root, text="Euler Tour", command=lambda: draw_route_into_graph(dic_routes['euler'], color='blue', plot_text='Euler Circuit'))
     show_euler_button.pack(side='left', padx=5, pady=5)
 
-    show_hamiltonian_button = Button(root, text="Hamiltonian", command=lambda: draw_route_into_graph(dic_routes['hamiltonian'], plot_text='Hamiltonian Circuit'))
+    show_hamiltonian_button = Button(root, text="Hamiltonian", command=lambda: draw_route_into_graph(dic_routes['hamiltonian'], color='blue', plot_text='Hamiltonian Circuit'))
     show_hamiltonian_button.pack(side='left', padx=5, pady=5)
 
-    show_hamilton_dijerka_button = Button(root, text="hamilton_dijerka", command=lambda: draw_route_into_graph(dic_routes['hamilton_dijerka'], plot_text='Hamiltonian tried to optimized with Dijerka'))
+    show_hamilton_dijerka_button = Button(root, text="hamilton_dijerka", command=lambda: draw_route_into_graph(dic_routes['hamilton_dijerka'], color='red', plot_text='Hamiltonian tried to optimized with Dijerka'))
     show_hamilton_dijerka_button.pack(side='left', padx=5, pady=5)
 
     global fig, ax
