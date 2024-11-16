@@ -239,27 +239,52 @@ def edmonds_blossom(matrix, odd_vertices, mst_edges):
 
             for neighbour in odd_vertices:
                 #Check if neighbour is not visited and exclude edges that are part of the mst
+                print("######### find path ########")
+                print("test curr:", index_to_char(currentNode), " neighbour:", index_to_char(neighbour))
+                print("visited: ", visited)
                 if (index_to_char(neighbour), index_to_char(currentNode)) not in mst_edges_without_weight and (index_to_char(currentNode), index_to_char(neighbour)) not in mst_edges_without_weight and not visited[neighbour] and neighbour != currentNode:  
                     parent[neighbour] = currentNode    #Link current node to the neighbour for path reconstruction
-                    print("parentdict: ", parent)
-                    print(mst_edges_without_weight)
-                    print("test:", index_to_char(currentNode), " ", index_to_char(neighbour))
+                    print("parentdict: ")
+                    for key, value in parent.items():
+                        key_char = index_to_char(key)
+                        value_char = index_to_char(value) if value is not None else None
+                        print(f"{key_char}: {value_char}")
+                    print("matchings: ")
+                    for key, value in matching.items():
+                        key_char = index_to_char(key)
+                        value_char = index_to_char(value) if value is not None else None
+                        print(f"{key_char}: {value_char}")
+                    print("mst edges: ", mst_edges_without_weight)
+                    print("odd_vertices: ", odd_vertices)
+                    print("queue: ", queue)
                     if matching[neighbour] is None:  #Augmenting path found as the neighbour is not in matching and the current node is also not in matching and it is not in mst
-                        print("RETURN augmented path start point ", neighbour)
+                        print("RETURN augmented path start point ", index_to_char(neighbour))
                         return neighbour
                     visited[neighbour] = True      #Mark neigbour as visisted
+                    print("Append: ", index_to_char(matching[neighbour]), " to queue")
                     queue.append(matching[neighbour])   #Neighbour already in matching, but gets added to the queue to check all its neighbours aswell
                                                 #This continues until all nodes are visited and None is returned or until a augmented path is found and returned
+                    
         return None
     
     def augment_path(matching, parent, node):
-        while node is not None:    #v is starting node of an augmented path
+        while node is not None:    #v is starting node of an augmented path             Vertices with odd degrees: ['S', 'A', 'R', 'N']
+            print("Augmenting node: ", index_to_char(node))
+            print("matchings before aug: ")
+            for key, value in matching.items():
+                key_char = index_to_char(key)
+                value_char = index_to_char(value) if value is not None else None
+                print(f"{key_char}: {value_char}")
             prev = parent.get(node, None)  #get the neighbour that is linked to the node
             if prev is None:
                 break
-            print("Augmented")
             matching[node] = prev  
             matching[prev] = node  #flipping the matching status of both
+            print("matchings after flip in aug: ")
+            for key, value in matching.items():
+                key_char = index_to_char(key)
+                value_char = index_to_char(value) if value is not None else None
+                print(f"{key_char}: {value_char}")
             node = parent.get(prev, None)  #Fetch the parent of the previous item to travers the path further, to invert the whole path
 
     odd_vertices = char_to_index(odd_vertices)
