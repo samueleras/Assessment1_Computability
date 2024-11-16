@@ -593,26 +593,29 @@ def create_graph():
     # Print available nodes for debugging
     print("Available nodes in the graph:", G.nodes)
 
-def change_mode(mode):
+def change_mode():
     global change_mode_button, selected_modus
-    text_route = "Mode: Route   (Change with R or C)"
-    text_circuit = "Mode: Circuit (Change with R or C)"
+    text_route = "Mode: Route   (Switch with S)"
+    text_circuit = "Mode: Circuit (Switch with S)"
     if selected_points:
         print("Can only change the Mode before choosing points!")
         return
-    if mode == 'r':
+    if change_mode_button.cget("text") == text_circuit:
         change_mode_button.config(text=text_route)
         selected_modus = 'route'
-    elif mode == 'c':
+        show_mst_button.pack_forget()
+        show_matching_button.pack_forget()
+        show_euler_button.pack_forget()
+        show_hamiltonian_button.pack_forget()
+        show_hamilton_dijerka_button.pack_forget()
+    else:
         change_mode_button.config(text=text_circuit)
         selected_modus = 'circuit'
-    elif mode == 'switch':
-        if change_mode_button.cget("text") == text_circuit:
-            change_mode_button.config(text=text_route)
-            selected_modus = 'route'
-        else:
-            change_mode_button.config(text=text_circuit)
-            selected_modus = 'circuit'
+        show_mst_button.pack(side='left', padx=5, pady=5)
+        show_matching_button.pack(side='left', padx=5, pady=5)
+        show_euler_button.pack(side='left', padx=5, pady=5)
+        show_hamiltonian_button.pack(side='left', padx=5, pady=5)
+        show_hamilton_dijerka_button.pack(side='left', padx=5, pady=5)
 
 # Function to plot the graph
 def plot_graph():
@@ -705,12 +708,12 @@ def create_gui():
     root.title("Computability and Optimisation Assignment 1")
 
     # Create a frame for the plot
-    global frame, canvas, change_mode_button
+    global frame, canvas, change_mode_button, show_mst_button, show_matching_button, show_euler_button, show_hamiltonian_button, show_hamilton_dijerka_button
     frame = Frame(root)
     frame.pack(pady=20)
 
     # Create Button to display and changecurrent Mode
-    change_mode_button = Button(root, text="Mode: Route   (Change with r or c)", command=lambda: change_mode('switch'))
+    change_mode_button = Button(root, text="Mode: Route   (Switch with S)", command=lambda: change_mode())
     change_mode_button.pack(side='left', padx=5, pady=5) 
 
     # Create buttons
@@ -724,19 +727,14 @@ def create_gui():
     upload_button.pack(side='left', padx=5, pady=5)
 
     show_mst_button = Button(root, text="MST-PRIMS", command=lambda: draw_route_into_graph(dic_routes['mst'], plot_text='Minimum Spanning Tree'))
-    show_mst_button.pack(side='left', padx=5, pady=5)
 
     show_matching_button = Button(root, text="Multigraph", command=lambda: draw_route_into_graph(dic_routes['multigraph'], plot_text='Multigraph'))
-    show_matching_button.pack(side='left', padx=5, pady=5)
 
     show_euler_button = Button(root, text="Euler Tour", command=lambda: draw_route_into_graph(dic_routes['euler'], color='blue', plot_text='Euler Circuit'))
-    show_euler_button.pack(side='left', padx=5, pady=5)
 
     show_hamiltonian_button = Button(root, text="Hamiltonian", command=lambda: draw_route_into_graph(dic_routes['hamiltonian'], color='blue', plot_text='Hamiltonian Circuit'))
-    show_hamiltonian_button.pack(side='left', padx=5, pady=5)
 
     show_hamilton_dijerka_button = Button(root, text="hamilton_dijerka", command=lambda: draw_route_into_graph(dic_routes['hamilton_dijerka'], color='red', plot_text='Hamiltonian tried to optimized with Dijerka'))
-    show_hamilton_dijerka_button.pack(side='left', padx=5, pady=5)
 
     global fig, ax
     fig, ax = plt.subplots(figsize=(12, 8))  # Set figure size
@@ -825,8 +823,8 @@ def on_key(event):
         reset_plot() # Reset current selections and reset plot
     elif event.key == 'u':
         upload_csv() # Upload csv
-    elif event.key == 'r' or event.key == 'c':
-        change_mode(event.key)
+    elif event.key == 's':
+        change_mode()
 
 
 
