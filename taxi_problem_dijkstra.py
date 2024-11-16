@@ -357,15 +357,13 @@ def find_circular_route(matrix, selected_points):
         print(f"{u} -- {v} (Weight: {weight})")
     print(f"Total cost of the Minimum Spanning Tree: {total_cost}")
     # Draw the MST into the graph
-    draw_route_into_graph(mst_edges, 'green', f"Minimum spanning tree\n Total cost: {total_cost}" , route_name='mst')
+    draw_route_into_graph(mst_edges, 'green', f"Minimum spanning tree" , route_name='mst')
 
 
     # Odd Degree vertices of MST
     odd_vertices = find_odd_degree_vertices(mst_edges, selected_points)
     # As long as there are odd vertices add edges
-    counter = 0
-    while odd_vertices and counter < 5:
-        counter += 1
+    while odd_vertices:
         print("Vertices with odd degrees:", odd_vertices)
 
         # Find minimum-cost perfect matching for odd vertices
@@ -379,6 +377,11 @@ def find_circular_route(matrix, selected_points):
             print(f"{u} -- {v} (Weight: {weight})")
         
         odd_vertices = find_odd_degree_vertices(multigraph_edges_with_weights, selected_points)
+
+        # For debugging
+        if not odd_vertices:
+            print("No vertices with odd degrees")
+    
 
     draw_route_into_graph(multigraph_edges_with_weights, 'blue', "Multigraph with even-degree vertices", route_name='multigraph')
 
