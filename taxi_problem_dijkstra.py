@@ -376,6 +376,17 @@ def eulerian_to_hamiltonian(eulerian_circuit):
     
     return hamiltonian_circuit
 
+def finding_circular_route_in_right_order(matrix, selected_points):
+    #1. Find the circuit only with school kids
+    #2. Find the nearest neighboor taxi - kids
+    #3. Try which direction is shorter counter- or clockwise to the school
+    #4. Add way back from school to taxi
+
+    taxi_index, school_index, kids_indicies = get_selected_points(selected_points)
+
+    #
+
+
 # Travelling Salesman Problem. Shortest path from A to B while traversing preselected nodes
 def find_circular_route(matrix, selected_points):
 
@@ -427,6 +438,29 @@ def find_circular_route(matrix, selected_points):
     #Save route to dic
     dic_routes['hamiltonian'] = hamiltonian_circuit
 
+    return hamiltonian_circuit
+
+def find_shortcut_route(matrix, route):
+    # Check if the edges have shortcuts with dijerkas
+    edges = convert_to_edges(route)
+
+    # Store the found shortcuts
+    edge_shortcuts = []
+    for edge in edges:
+        start, end = edge
+        shortcut= find_shortest_path_dijkstras(matrix, char_to_index(start), char_to_index(end))
+        print(f"Found Shortcut: {shortcut}")
+        for node in shortcut:
+            edge_shortcuts.append(node)
+    
+    # Remove consecutive duplicate elements from edge_shortcuts
+    result_shortcut_route = [edge_shortcuts[0]]  # Start with the first element
+    for i in range(1, len(edge_shortcuts)):
+        if edge_shortcuts[i] != edge_shortcuts[i-1]:
+            result_shortcut_route.append(edge_shortcuts[i])
+    
+    return result_shortcut_route
+
     # Use on each edge djirkas Algorithm to find shortcuts
     hamiltonian_edges = convert_to_edges(hamiltonian_circuit)
 
@@ -447,22 +481,9 @@ def find_circular_route(matrix, selected_points):
     dic_routes['hamilton_dijerka'] = result_hamilton_shortcut
     draw_route_into_graph(dic_routes['hamilton_dijerka'], color="red", plot_text='Hamiltonian tried to optimized with Dijerka')
 
+    circular_route_right_order = finding_circular_route_in_right_order(matrix, selected_points)
 
-    """ 
-    # Finding the shortest path between points while traversing
-    start_index, end_index, pickup_indicies = get_selected_points(selected_points)
-    best_cost, best_path = tsp(matrix, pickup_indicies, start_index, end_index)
-    best_path = index_to_char(best_path)
-    print("Held Karp: ", best_cost, best_path)
-    print("Selected Points in order: ", selected_points)
-    # Adding the return from end to start
-    # The route from School back to Taxi is fixed so add it to the shortest path
-    route_school_taxi = find_shortest_path_dijkstras(matrix, start_index, end_index)
-    cost_school_taxi = calculate_total_edge_weight(route_school_taxi)
-    print("The Shortest Route from School to Taxi is: ", route_school_taxi)
-    print("The Weight is: ", cost_school_taxi) """
-
-    return None
+    return 
 
 # Function to convert characters A-Z to indices 0-25
 def char_to_index(char):
@@ -506,18 +527,21 @@ def get_selected_points(selected_points):
     return start_point, end_point, pickup_points
 
 def calculate_path():
-        if not selected_points: 
-            print("Error: Please select at least a start and a finish point.")
-            return
-        start_index, end_index, pickup_indices = get_selected_points(selected_points)
-        
-        # Decide whether to search for A->B or via several pickup points
-        if pickup_indices:
-            find_circular_route(adj_matrix_algo, selected_points)
-        else: 
-            best_route = find_shortest_path_dijkstras(adj_matrix_algo, start_index, end_index)
-            print("Best route found:", " -> ".join(best_route))
-            draw_route_into_graph(best_route,'red', f"Shortest Path from {index_to_char(start_index)} to {index_to_char(end_index)}")
+    if not selected_points: 
+        print("Error: Please select at least a start and a finish point.")
+        return
+    start_index, end_index, pickup_indices = get_selected_points(selected_points)
+    
+    # Decide whether to search for A->B or via several pickup points
+    if pickup_indices:
+        hamiltonian_route = find_circular_route(adj_matrix_algo, selected_points)
+        hamiltonian_shortcut = find_shortcut_route(adj_matrix_algo, hamiltonian_route)
+        print("Best circuit found:", " -> ".join(hamiltonian_shortcut))
+        draw_route_into_graph(hamiltonian_shortcut,'red', f"Shortest Path from {index_to_char(start_index)} to {index_to_char(end_index)}")
+    else:
+        best_route = find_shortest_path_dijkstras(adj_matrix_algo, start_index, end_index)
+        print("Best route found:", " -> ".join(best_route))
+        draw_route_into_graph(best_route,'red', f"Shortest Path from {index_to_char(start_index)} to {index_to_char(end_index)}")
 
 
 def initialize_variables():
