@@ -608,12 +608,16 @@ def calculate_path():
     
     # Decide whether to search for A->B or via several pickup points
     if pickup_indices:
-        hamiltonian_route = find_circular_route(adj_matrix_algo, selected_points)
-        hamiltonian_shortcut = find_shortcut_route(adj_matrix_algo, hamiltonian_route)
-        print("Best circuit found:", " -> ".join(hamiltonian_shortcut))
-        circuit_right_order = finding_circular_route_in_right_order(adj_matrix_algo, selected_points)
-        print("Best Circuit in right order found: ", circuit_right_order)
-        draw_route_into_graph(circuit_right_order,'red', f"Circuit right order: ")
+        if len(selected_points) >= 5:
+            circuit_right_order = finding_circular_route_in_right_order(adj_matrix_algo, selected_points)
+            print("Best Circuit in right order found: ", circuit_right_order)
+            draw_route_into_graph(circuit_right_order,'red', f"Circuit with the right Order Taxi -> Kids - > School: ")
+        else:
+            hamiltonian_route = find_circular_route(adj_matrix_algo, selected_points)
+            hamiltonian_shortcut = find_shortcut_route(adj_matrix_algo, hamiltonian_route)
+            dic_routes['hamilton_dijerka'] = hamiltonian_shortcut
+            print("Best circuit found:", " -> ".join(hamiltonian_shortcut))
+            draw_route_into_graph(hamiltonian_shortcut,'red', f"Hamilton optimized with Dijerkas: ")
     else:
         best_route = find_shortest_path_dijkstras(adj_matrix_algo, start_index, end_index)
         print("Best route found:", " -> ".join(best_route))
@@ -762,6 +766,14 @@ def convert_to_edges(route):
     
     return edges
 
+def convert_edges_to_route(edges):
+    route = []
+    for n in range(len(edges)):
+        start, end = edges[n]
+        route.append(start)
+    route.append(edges[-1][1])
+    return route
+    
 def calculate_total_edge_weight(edges):
     if not edges:
         return 0
@@ -774,13 +786,13 @@ def calculate_total_edge_weight(edges):
     return total_weight
 
 # Draw a route onto an existing graph and highlighting it
-def draw_route_into_graph(route, color='orange', plot_text=None):
+def draw_route_into_graph(route, color='orange', plot_text=''):
     global node_texts, dic_routes
 
     ax.clear()
     # Convert the route to edges if it’s in node format
     route_edges = convert_to_edges(route)
-    print("Edges to draw: ", route_edges)
+    route = convert_edges_to_route(route_edges)
     for label in ax.texts:
         label.remove()
     # Retrieve current colors from node attributes
@@ -795,7 +807,8 @@ def draw_route_into_graph(route, color='orange', plot_text=None):
 
     # Calculate the total route cost and set plot title
     total_cost = calculate_total_edge_weight(route_edges)
-    ax.set_title(f"{plot_text}\nTotal Cost: {total_cost}" if plot_text else f"Total Cost: {total_cost}")
+    ax.set_title(f"{plot_text}\nRoute: {' -> '.join(route)}\nTotal Cost: {total_cost}")
+
 
     for x, y, text in node_texts:
         plt.text(
