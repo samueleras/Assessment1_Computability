@@ -228,6 +228,66 @@ def minimum_cost_perfect_matching(matrix, odd_vertices, mst_edges):
 
     return min_cost_matching
 
+def edmonds_blossom(matrix, odd_vertices, mst_edges):
+
+    def find_augmenting_path(matching, node1, visited, parent, mst_edges_without_weight):
+        queue = [node1]
+        visited[node1] = True
+
+        while queue:
+            currentNode = queue.pop(0)
+
+            for neighbour in odd_vertices:
+                #Check if neighbour is not visited and exclude edges that are part of the mst
+                if (index_to_char(neighbour), index_to_char(currentNode)) not in mst_edges_without_weight and (index_to_char(currentNode), index_to_char(neighbour)) not in mst_edges_without_weight and not visited[neighbour] and neighbour != currentNode:  
+                    parent[neighbour] = currentNode    #Link current node to the neighbour for path reconstruction
+                    print("parentdict: ", parent)
+                    print(mst_edges_without_weight)
+                    print("test:", index_to_char(currentNode), " ", index_to_char(neighbour))
+                    if matching[neighbour] is None:  #Augmenting path found as the neighbour is not in matching and the current node is also not in matching and it is not in mst
+                        print("RETURN augmented path start point ", neighbour)
+                        return neighbour
+                    visited[neighbour] = True      #Mark neigbour as visisted
+                    queue.append(matching[neighbour])   #Neighbour already in matching, but gets added to the queue to check all its neighbours aswell
+                                                #This continues until all nodes are visited and None is returned or until a augmented path is found and returned
+        return None
+    
+    def augment_path(matching, parent, node):
+        while node is not None:    #v is starting node of an augmented path
+            prev = parent.get(node, None)  #get the neighbour that is linked to the node
+            if prev is None:
+                break
+            print("Augmented")
+            matching[node] = prev  
+            matching[prev] = node  #flipping the matching status of both
+            node = parent.get(prev, None)  #Fetch the parent of the previous item to travers the path further, to invert the whole path
+
+    odd_vertices = char_to_index(odd_vertices)
+
+    #Matching dictionary to track which nodes are matchings
+    matching = {}
+    matching = {u: None for u in odd_vertices}
+
+    mst_edges_without_weight = [(node1, node2) for node1, node2, weight in mst_edges]
+
+    #Augment the matching by finding augmenting paths
+    for node1 in odd_vertices:
+        if matching[node1] is None:  #Free vertex
+            visited = [False] * len(matrix)
+            parent = {}
+            node2 = find_augmenting_path(matching, node1, visited, parent, mst_edges_without_weight)  #Find augmented path, starting with the unmatched node1
+            if node2 is not None:
+                augment_path(matching, parent, node2)
+
+    # Convert matching dictionary to edge list
+    result = []
+    for node1, node2 in matching.items():
+        if node1 < node2:  # Avoid duplicates
+            weight = matrix.iloc[node1, node2]
+            result.append((index_to_char(node1), index_to_char(node2), weight))
+
+    return result
+
 # Check if the route has only even degrees vertices
 def has_even_degrees(edges):
     # Step 1: Initialize a dictionary to track the degree of each vertex
@@ -252,7 +312,6 @@ def find_eulerian_circuit(edges):
     for u, v, weight in edges:
         adj_list[u].append(v)
         adj_list[v].append(u)
-    print("Adj list: ", adj_list)
 
     # Function to check if a vertex has any unused edges
     def has_unused_edges(vertex):
@@ -310,7 +369,7 @@ def find_circular_route(matrix, selected_points):
         print("Vertices with odd degrees:", odd_vertices)
 
         # Find minimum-cost perfect matching for odd vertices
-        matching = minimum_cost_perfect_matching_brute(matrix, odd_vertices, mst_edges)
+        matching = edmonds_blossom(matrix, odd_vertices, mst_edges)
         print("Minimum-cost perfect matching:", matching)
 
         # Combine MST and matching to form the multigraph
@@ -353,7 +412,7 @@ def find_circular_route(matrix, selected_points):
     draw_route_into_graph(result_hamilton_shortcut, 'r', f"Hamiltonian with Dijerkas: ", route_name='hamilton_dijerka')
 
 
-
+    """ 
     # Finding the shortest path between points while traversing
     start_index, end_index, pickup_indicies = get_selected_points(selected_points)
     best_cost, best_path = tsp(matrix, pickup_indicies, start_index, end_index)
@@ -365,13 +424,17 @@ def find_circular_route(matrix, selected_points):
     route_school_taxi = find_shortest_path_dijkstras(matrix, start_index, end_index)
     cost_school_taxi = calculate_total_edge_weight(route_school_taxi)
     print("The Shortest Route from School to Taxi is: ", route_school_taxi)
-    print("The Weight is: ", cost_school_taxi)
+    print("The Weight is: ", cost_school_taxi) """
 
     return None
 
 # Function to convert characters A-Z to indices 0-25
 def char_to_index(char):
-    return ord(char.upper()) - ord('A')
+    #return ord(char.upper()) - ord('A')
+    if type(char) == str:
+        return ord(char.upper()) - ord('A')
+    else:
+        return [ord(c.upper()) - ord('A') for c in char]
 
 # Function to convert indices 0-25 to characters A-Z
 def index_to_char(index_list):
@@ -568,7 +631,7 @@ def calculate_total_edge_weight(edges):
     return total_weight
 
 # Draw a route onto an existing graph and highlighting it
-def draw_route_into_graph(route, color='orange', plot_text=None, circuit = True, route_name=None):
+def draw_route_into_graph(route, color='orange', plot_text=None, route_name=None):
     global node_texts, dic_routes
 
     ax.clear()
