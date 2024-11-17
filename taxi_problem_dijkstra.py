@@ -391,16 +391,6 @@ def finding_circular_route_in_right_order(matrix, selected_points):
         nearest_kid = None
         best_route = None
 
-        """ for kid in kids_indices:
-            route = find_shortest_path_dijkstras(matrix, taxi_index, kid)
-            if not route:
-                continue
-            route_weight = calculate_total_edge_weight(route)
-            if route_weight < smallest_weight:
-                smallest_weight = route_weight
-                nearest_kid_index = kid
-                best_route = route """
-                
         for kid in index_to_char(kids_indices):
             route = [(index_to_char(taxi_index), kid)]
             route_weight = calculate_total_edge_weight(route)
@@ -446,7 +436,6 @@ def finding_circular_route_in_right_order(matrix, selected_points):
             print("DEBUG: Last kid in this direction:", last_kid)
 
             # Find the route from the last kid to the school
-            """ last_kid_school_route = find_shortest_path_dijkstras(matrix, char_to_index(last_kid), school_index) """
             last_kid_school_route = [(last_kid, index_to_char(school_index))]
             print("DEBUG: Last kid to school route:", last_kid_school_route)
 
@@ -454,20 +443,9 @@ def finding_circular_route_in_right_order(matrix, selected_points):
             route = taxi_kid_route + direction + last_kid_school_route
             print("DEBUG: Complete route:", route)
 
-            """ cleaned_route = []
-            for i in range(len(route)):
-                if i == 0 or route[i] != route[i - 1]:  # Add element if it's the first or different from the previous
-                    cleaned_route.append(route[i])
-            
-            # Cleaned Route
-            print("DEBUG: Cleaned Route:", cleaned_route) """
-
             # Convert route to edges of route
             route_edges = convert_to_edges(route)
             print("DEBUG: Route Edges:", route_edges)
-
-            """ route_edges = remove_consecutive_duplicates_in_edge_list(route_edges)
-            print("DEBUG: Route Edges modified:", route_edges) """
 
             # Calculate the total weight of the route
             total_weight = calculate_total_edge_weight(route_edges)
@@ -503,12 +481,7 @@ def finding_circular_route_in_right_order(matrix, selected_points):
 
     # Step 4: Add the way back to the taxi from the school
     circuit_taxi_kids_school = best_route + [(index_to_char(school_index), index_to_char(taxi_index))]
-    """ circuit_taxi_kids_school = remove_consecutive_duplicates_in_edge_list(convert_to_edges(circuit_taxi_kids_school)) """
-
-    """ # Filter out invalid edges
-    final_circuit = [edge for edge in circuit_taxi_kids_school if edge[0] != edge[1]]
-    print("The best circuit is:", final_circuit) """
-
+    
     # Save the result to the dictionary
     dic_routes['correct_order_circuit'] = circuit_taxi_kids_school
 
