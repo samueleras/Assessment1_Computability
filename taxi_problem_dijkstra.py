@@ -402,56 +402,81 @@ def finding_circular_route_in_right_order(matrix, selected_points):
                 best_route = route
 
         return nearest_kid_index, smallest_weight, best_route
-
-    def get_neighbors(lst, element):
-        """Find the previous and next neighbors of an element in a circular list."""
-        if element not in lst:
-            return []
-
-        idx = lst.index(element)
-        prev_elem = lst[idx - 1] if idx > 0 else lst[-1]
-        next_elem = lst[idx + 1] if idx < len(lst) - 1 else lst[0]
-        return [prev_elem, next_elem]
     
-    def determine_best_route(matrix, circuit_kids, nearest_kid_index, neighbors, school_index, taxi_kid_route, taxi_index):
-        """
-        Determine the shorter direction (clockwise or counterclockwise) for the kids' circuit
-        and calculate the best route to the school.
-        """
+    def determine_best_route(matrix, circuit_kids, nearest_kid_index, school_index, taxi_kid_route, taxi_index):
+
+        print("DEBUG: Starting determine_best_route...")
         best_route = None
-        best_weight = float('inf')
-        print("Circuit kids: ",circuit_kids)
+        min_weight = float('inf')  # Initialize the best weight as infinity
 
-        school_taxi_route = find_shortest_path_dijkstras(matrix, school_index, taxi_index)
-        school_taxi_edges = convert_to_edges(school_taxi_route)
+        # Debugging input details
+        print("DEBUG: Circuit kids:", circuit_kids)
+        print("DEBUG: Nearest kid:", index_to_char(nearest_kid_index))
+        print("DEBUG: Taxi kid route:", taxi_kid_route)
+        print("DEBUG: Taxi:", index_to_char(taxi_index))
+        print("DEBUG: School:", index_to_char(school_index))
 
-        for neighbor in neighbors:
-            # Find the route from the neighbor to the school
-            kid_school_route = find_shortest_path_dijkstras(matrix, neighbor, school_index)
+        # Clockwise arrangement
+        clockwise_list = circuit_kids[nearest_kid_index:] + circuit_kids[:nearest_kid_index]
+        # Remove the first and last item
+        clockwise_list = clockwise_list[:-1]
+        print("DEBUG: Clockwise list:", clockwise_list)
+        
+
+        # Counterclockwise arrangement
+        counterclockwise_list = circuit_kids[nearest_kid_index::-1] + circuit_kids[:nearest_kid_index:-1]
+        # Remove the first and last item
+        counterclockwise_list = counterclockwise_list[:-1]
+        print("DEBUG: Counterclockwise list:", counterclockwise_list)
+
+        # Iterate through both directions
+        directions = [clockwise_list, counterclockwise_list]
+        
+
+        for direction in directions:
+            print("DEBUG: Evaluating direction:", direction)
+
+            # Get the last kid in the direction
+            last_kid = direction[-1]
+            print("DEBUG: Last kid in this direction:", last_kid)
+
+            # Find the route from the last kid to the school
+            last_kid_school_route = find_shortest_path_dijkstras(matrix, char_to_index(last_kid), school_index)
+            print("DEBUG: Last kid to school route:", last_kid_school_route)
+
+            # Form the complete route
+            route = taxi_kid_route + direction + last_kid_school_route
+            print("DEBUG: Complete route:", route)
+            cleaned_route = []
+            for i in range(len(route)):
+                if i == 0 or route[i] != route[i - 1]:  # Add element if it's the first or different from the previous
+                    cleaned_route.append(route[i])
             
-            print("Befor modify: ", circuit_kids, neighbor)
-            # Rearrange the list to start from the nearest kid and keep the order
-            modified_circuit = circuit_kids[nearest_kid_index:] + circuit_kids[:nearest_kid_index]
-            print("After modify: ", modified_circuit, neighbor)
-            print("\n")
-            taxi_kid_edges = convert_to_edges(taxi_kid_route)
-            modified_circuit_edges = convert_to_edges(modified_circuit)
-            kid_school_edges = convert_to_edges(kid_school_route)
-            print("Taxi kid edges: ", taxi_kid_edges)            
-            print("Modified: ", modified_circuit_edges)            
-            print("Kid_school_route: ", kid_school_edges)
-            print("School Taxi edges: ", school_taxi_edges)
-            # Create the full route
-            full_route = taxi_kid_edges + modified_circuit_edges + kid_school_edges + school_taxi_edges
-            print("Full Route: " , full_route)
-            total_weight = calculate_total_edge_weight(full_route)
+            # Cleaned Route
+            print("DEBUG: Cleaned Route:", cleaned_route)
+
+            # Convert route to edges of route
+            route_edges = convert_to_edges(cleaned_route)
+            print("DEBUG: Route Edges:", route_edges)
+
+            route_edges = remove_consecutive_duplicates_in_edge_list(route_edges)
+            print("DEBUG: Route Edges modified:", route_edges)
+
+            # Calculate the total weight of the route
+            total_weight = calculate_total_edge_weight(route_edges)
+            print("DEBUG: Total weight of route:", total_weight)
 
             # Update the best route if this one is better
-            if total_weight < best_weight:
-                best_route = full_route
-                best_weight = total_weight
+            if total_weight < min_weight:
+                print("DEBUG: Found a new best route with weight:", total_weight)
+                min_weight = total_weight
+                best_route = route
 
-        return best_route, best_weight
+        print("DEBUG: Best route found:", best_route)
+        print("DEBUG: Best route weight:", min_weight)
+
+        return best_route, min_weight
+
 
     taxi_index, school_index, kids_indices = get_selected_points(selected_points)
 
@@ -463,17 +488,12 @@ def finding_circular_route_in_right_order(matrix, selected_points):
     nearest_kid_index, smallest_weight_taxi_kid, fastest_taxi_kid_route = find_nearest_kid(matrix, taxi_index, kids_indices)
     print(f"The nearest kid is: {index_to_char(nearest_kid_index)} with weight: {smallest_weight_taxi_kid}")
 
-    # Step 3: Find neighbors of the nearest kid in the circuit
-    kids_neighbors_indices = get_neighbors(kids_indices, nearest_kid_index)
-    kids_neighbors = index_to_char(kids_neighbors_indices)
-    print("Neighbors of the nearest kid:", kids_neighbors)
-
-    # Step 4: Determine the shorter direction and calculate the best route
-    best_route, best_weight = determine_best_route(matrix, circuit_kids, nearest_kid_index, kids_neighbors_indices, school_index, fastest_taxi_kid_route, taxi_index)
+    # Step 3: Determine the shorter direction and calculate the best route
+    best_route, best_weight = determine_best_route(matrix, circuit_kids, nearest_kid_index, school_index, fastest_taxi_kid_route, taxi_index)
     print("Best route:", best_route)
     print("Best route weight:", best_weight)
 
-    # Step 5: Add the way back to the taxi from the school
+    # Step 4: Add the way back to the taxi from the school
     circuit_taxi_kids_school = best_route + find_shortest_path_dijkstras(matrix, school_index, taxi_index)
     circuit_taxi_kids_school = remove_consecutive_duplicates_in_edge_list(convert_to_edges(circuit_taxi_kids_school))
 
@@ -625,6 +645,7 @@ def calculate_path():
         if len(selected_points) >= 5:
             circuit_right_order = finding_circular_route_in_right_order(adj_matrix_algo, selected_points)
             print("Best Circuit in right order found: ", circuit_right_order)
+            dic_routes['circuit_right_order'] = circuit_right_order
             circuit_right_order_shortcut = find_shortcut_route(adj_matrix_algo, circuit_right_order)
             dic_routes['hamilton_dijerka'] = circuit_right_order_shortcut
             print("Circuit with the right Order, optimized with Djerka: ", circuit_right_order_shortcut)
