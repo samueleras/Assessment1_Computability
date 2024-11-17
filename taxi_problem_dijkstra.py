@@ -388,7 +388,7 @@ def finding_circular_route_in_right_order(matrix, selected_points):
     def find_nearest_kid(matrix, taxi_index, kids_indices):
         """Find the nearest kid to the taxi based on weight."""
         smallest_weight = float('inf')
-        nearest_kid_index = None
+        nearest_kid = None
         best_route = None
 
         """ for kid in kids_indices:
@@ -401,17 +401,17 @@ def finding_circular_route_in_right_order(matrix, selected_points):
                 nearest_kid_index = kid
                 best_route = route """
                 
-        for kid in kids_indices:
-            route = [(index_to_char(taxi_index), index_to_char(kid))]
+        for kid in index_to_char(kids_indices):
+            route = [(index_to_char(taxi_index), kid)]
             route_weight = calculate_total_edge_weight(route)
             if route_weight < smallest_weight:
                 smallest_weight = route_weight
-                nearest_kid_index = kid
+                nearest_kid = kid
                 best_route = route
 
-        return nearest_kid_index, smallest_weight, best_route
+        return nearest_kid, smallest_weight, best_route
     
-    def determine_best_route(matrix, circuit_kids, nearest_kid_index, school_index, taxi_kid_route, taxi_index):
+    def determine_best_route(circuit_kids, nearest_kid, school_index, taxi_kid_route, taxi_index):
 
         print("DEBUG: Starting determine_best_route...")
         best_route = None
@@ -419,22 +419,19 @@ def finding_circular_route_in_right_order(matrix, selected_points):
 
         # Debugging input details
         print("DEBUG: Circuit kids:", circuit_kids)
-        print("DEBUG: Nearest kid:", index_to_char(nearest_kid_index))
+        print("DEBUG: Nearest kid:", nearest_kid)
         print("DEBUG: Taxi kid route:", taxi_kid_route)
         print("DEBUG: Taxi:", index_to_char(taxi_index))
         print("DEBUG: School:", index_to_char(school_index))
 
+        nearest_kid_index = circuit_kids.index(nearest_kid)
+
         # Clockwise arrangement
         clockwise_list = circuit_kids[nearest_kid_index:] + circuit_kids[:nearest_kid_index]
-        # Remove the first and last item
-        clockwise_list = clockwise_list[:-1]
         print("DEBUG: Clockwise list:", clockwise_list)
         
-
         # Counterclockwise arrangement
         counterclockwise_list = circuit_kids[nearest_kid_index::-1] + circuit_kids[:nearest_kid_index:-1]
-        # Remove the first and last item
-        counterclockwise_list = counterclockwise_list[:-1]
         print("DEBUG: Counterclockwise list:", counterclockwise_list)
 
         # Iterate through both directions
@@ -456,20 +453,21 @@ def finding_circular_route_in_right_order(matrix, selected_points):
             # Form the complete route
             route = taxi_kid_route + direction + last_kid_school_route
             print("DEBUG: Complete route:", route)
-            cleaned_route = []
+
+            """ cleaned_route = []
             for i in range(len(route)):
                 if i == 0 or route[i] != route[i - 1]:  # Add element if it's the first or different from the previous
                     cleaned_route.append(route[i])
             
             # Cleaned Route
-            print("DEBUG: Cleaned Route:", cleaned_route)
+            print("DEBUG: Cleaned Route:", cleaned_route) """
 
             # Convert route to edges of route
-            route_edges = convert_to_edges(cleaned_route)
+            route_edges = convert_to_edges(route)
             print("DEBUG: Route Edges:", route_edges)
 
-            route_edges = remove_consecutive_duplicates_in_edge_list(route_edges)
-            print("DEBUG: Route Edges modified:", route_edges)
+            """ route_edges = remove_consecutive_duplicates_in_edge_list(route_edges)
+            print("DEBUG: Route Edges modified:", route_edges) """
 
             # Calculate the total weight of the route
             total_weight = calculate_total_edge_weight(route_edges)
@@ -479,7 +477,7 @@ def finding_circular_route_in_right_order(matrix, selected_points):
             if total_weight < min_weight:
                 print("DEBUG: Found a new best route with weight:", total_weight)
                 min_weight = total_weight
-                best_route = route
+                best_route = route_edges
 
         print("DEBUG: Best route found:", best_route)
         print("DEBUG: Best route weight:", min_weight)
@@ -491,29 +489,30 @@ def finding_circular_route_in_right_order(matrix, selected_points):
 
     # Step 1: Create a circular route for the kids
     mst_edges, multigraph_edges_with_weights, euler_tour, circuit_kids = find_circular_route(matrix, index_to_char(kids_indices))
+    circuit_kids = circuit_kids[:-1]
     print("Circuit kids:", circuit_kids)
 
     # Step 2: Find the nearest kid to the taxi
-    nearest_kid_index, smallest_weight_taxi_kid, fastest_taxi_kid_route = find_nearest_kid(matrix, taxi_index, kids_indices)
-    print(f"The nearest kid is: {index_to_char(nearest_kid_index)} with weight: {smallest_weight_taxi_kid}")
+    nearest_kid, smallest_weight_taxi_kid, fastest_taxi_kid_route = find_nearest_kid(matrix, taxi_index, kids_indices)
+    print(f"The nearest kid is: {nearest_kid} with weight: {smallest_weight_taxi_kid}")
 
     # Step 3: Determine the shorter direction and calculate the best route
-    best_route, best_weight = determine_best_route(matrix, circuit_kids, nearest_kid_index, school_index, fastest_taxi_kid_route, taxi_index)
+    best_route, best_weight = determine_best_route(circuit_kids, nearest_kid, school_index, fastest_taxi_kid_route, taxi_index)
     print("Best route:", best_route)
     print("Best route weight:", best_weight)
 
     # Step 4: Add the way back to the taxi from the school
-    circuit_taxi_kids_school = best_route + find_shortest_path_dijkstras(matrix, school_index, taxi_index)
-    circuit_taxi_kids_school = remove_consecutive_duplicates_in_edge_list(convert_to_edges(circuit_taxi_kids_school))
+    circuit_taxi_kids_school = best_route + [(index_to_char(school_index), index_to_char(taxi_index))]
+    """ circuit_taxi_kids_school = remove_consecutive_duplicates_in_edge_list(convert_to_edges(circuit_taxi_kids_school)) """
 
-    # Filter out invalid edges
+    """ # Filter out invalid edges
     final_circuit = [edge for edge in circuit_taxi_kids_school if edge[0] != edge[1]]
-    print("The best circuit is:", final_circuit)
+    print("The best circuit is:", final_circuit) """
 
     # Save the result to the dictionary
-    dic_routes['correct_order_circuit'] = final_circuit
+    dic_routes['correct_order_circuit'] = circuit_taxi_kids_school
 
-    return final_circuit
+    return circuit_taxi_kids_school
 
 def remove_consecutive_duplicates_in_edge_list(lst):
     if not lst:
@@ -648,7 +647,7 @@ def calculate_path():
         dic_routes['euler'] = euler_tour
         dic_routes['hamiltonian'] = hamiltonian_circuit
         hamiltonian_optimised = find_shortcut_route(adj_matrix_algo, hamiltonian_circuit)
-        dic_routes['hamilton_dijerka'] = hamiltonian_optimised
+        dic_routes['hamiltonian_dijkstras'] = hamiltonian_optimised
         print("Best circuit found:", " -> ".join(hamiltonian_optimised))
         if len(selected_points) >= 5:
             circuit_right_order = finding_circular_route_in_right_order(adj_matrix_algo, selected_points)
@@ -753,8 +752,9 @@ def change_mode():
         show_matching_button.pack_forget()
         show_euler_button.pack_forget()
         show_hamiltonian_button.pack_forget()
-        show_hamilton_dijerka_button.pack_forget()
+        show_hamilton_dijkstras_button.pack_forget()
         show_circuit_right_order_button.pack_forget()
+        show_circuit_right_order_dijkstras_button.pack_forget()
     else:
         change_mode_button.config(text=text_circuit)
         selected_modus = 'circuit'
@@ -762,8 +762,9 @@ def change_mode():
         show_matching_button.pack(side='left', padx=5, pady=5)
         show_euler_button.pack(side='left', padx=5, pady=5)
         show_hamiltonian_button.pack(side='left', padx=5, pady=5)
-        show_hamilton_dijerka_button.pack(side='left', padx=5, pady=5)
+        show_hamilton_dijkstras_button.pack(side='left', padx=5, pady=5)
         show_circuit_right_order_button.pack(side='left', padx=5, pady=5)
+        show_circuit_right_order_dijkstras_button.pack(side='left', padx=5, pady=5)
 
 # Function to plot the graph
 def plot_graph():
@@ -871,10 +872,26 @@ def create_gui():
     root = Tk()
     root.title("Computability and Optimisation Assignment 1")
 
+    # Set the window size
+    window_width = 1300
+    window_height = 900
+
+    # Get the screen's width and height
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+
+    # Calculate the position to center the window
+    position_x = (screen_width // 2) - (window_width // 2)
+    position_y = (screen_height // 2) - (window_height // 2)
+
+    # Set the geometry with position
+    root.geometry(f"{window_width}x{window_height}+{position_x}+{position_y}")
+    root.state("zoomed")
+
     # Create a frame for the plot
-    global frame, canvas, change_mode_button, show_mst_button, show_matching_button, show_euler_button, show_hamiltonian_button, show_hamilton_dijerka_button, show_circuit_right_order_button
+    global frame, canvas, change_mode_button, show_mst_button, show_matching_button, show_euler_button, show_hamiltonian_button, show_hamilton_dijkstras_button, show_circuit_right_order_button, show_circuit_right_order_dijkstras_button
     frame = Frame(root)
-    frame.pack(pady=20)
+    frame.pack(fill="both", expand=True, pady=20)
 
     # Create Button to display and changecurrent Mode
     change_mode_button = Button(root, text="Mode: Route   (Switch with S)", command=lambda: change_mode())
@@ -898,16 +915,18 @@ def create_gui():
 
     show_hamiltonian_button = Button(root, text="Hamiltonian", command=lambda: draw_route_into_graph(dic_routes['hamiltonian'], color='blue', plot_text='Hamiltonian Circuit'))
 
-    show_hamilton_dijerka_button = Button(root, text="hamilton_dijerka", command=lambda: draw_route_into_graph(dic_routes['hamilton_dijerka'], color='red', plot_text='Hamiltonian tried to optimized with Dijerka'))
+    show_hamilton_dijkstras_button = Button(root, text="Hamiltonian Optimised", command=lambda: draw_route_into_graph(dic_routes['hamiltonian_dijkstras'], color='red', plot_text='Hamiltonian tried to optimized with Dijerka'))
 
     show_circuit_right_order_button = Button(root, text='Circuit in Order', command=lambda: draw_route_into_graph(dic_routes['correct_order_circuit'], color='red', plot_text='Taxi picks up all Kids and drives to School and back'))
+
+    show_circuit_right_order_dijkstras_button = Button(root, text="Circuit in Order Optimised", command=lambda: draw_route_into_graph(dic_routes['hamilton_dijkstras_right_order'], color='red', plot_text='Right Order Optimised with Dijkstras'))
+
     global fig, ax
     fig, ax = plt.subplots(figsize=(12, 8))  # Set figure size
     fig.canvas.mpl_connect('button_press_event', on_click)
     fig.canvas.mpl_connect('key_press_event', on_key)
     canvas = FigureCanvasTkAgg(fig, master=frame)
-    canvas.draw()  # Draw the canvas
-    canvas.get_tk_widget().pack()
+    canvas.get_tk_widget().pack(fill="both", expand=True)
 
     plot_graph()
 
