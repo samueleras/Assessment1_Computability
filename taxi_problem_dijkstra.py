@@ -391,10 +391,18 @@ def finding_circular_route_in_right_order(matrix, selected_points):
         nearest_kid_index = None
         best_route = None
 
-        for kid in kids_indices:
+        """ for kid in kids_indices:
             route = find_shortest_path_dijkstras(matrix, taxi_index, kid)
             if not route:
                 continue
+            route_weight = calculate_total_edge_weight(route)
+            if route_weight < smallest_weight:
+                smallest_weight = route_weight
+                nearest_kid_index = kid
+                best_route = route """
+                
+        for kid in kids_indices:
+            route = [(index_to_char(taxi_index), index_to_char(kid))]
             route_weight = calculate_total_edge_weight(route)
             if route_weight < smallest_weight:
                 smallest_weight = route_weight
@@ -441,7 +449,8 @@ def finding_circular_route_in_right_order(matrix, selected_points):
             print("DEBUG: Last kid in this direction:", last_kid)
 
             # Find the route from the last kid to the school
-            last_kid_school_route = find_shortest_path_dijkstras(matrix, char_to_index(last_kid), school_index)
+            """ last_kid_school_route = find_shortest_path_dijkstras(matrix, char_to_index(last_kid), school_index) """
+            last_kid_school_route = [(last_kid, index_to_char(school_index))]
             print("DEBUG: Last kid to school route:", last_kid_school_route)
 
             # Form the complete route
@@ -481,7 +490,7 @@ def finding_circular_route_in_right_order(matrix, selected_points):
     taxi_index, school_index, kids_indices = get_selected_points(selected_points)
 
     # Step 1: Create a circular route for the kids
-    circuit_kids = find_circular_route(matrix, index_to_char(kids_indices))
+    mst_edges, multigraph_edges_with_weights, euler_tour, circuit_kids = find_circular_route(matrix, index_to_char(kids_indices))
     print("Circuit kids:", circuit_kids)
 
     # Step 2: Find the nearest kid to the taxi
@@ -529,9 +538,6 @@ def find_circular_route(matrix, selected_points):
     for u, v, weight in mst_edges:
         print(f"{u} -- {v} (Weight: {weight})")
     print(f"Total cost of the Minimum Spanning Tree: {total_cost}")
-    #Save route to dic
-    dic_routes['mst'] = mst_edges
-
 
     # Odd Degree vertices of MST
     odd_vertices = find_odd_degree_vertices(mst_edges, selected_points)
@@ -555,24 +561,17 @@ def find_circular_route(matrix, selected_points):
         if not odd_vertices:
             print("No vertices with odd degrees")
     
-
-    #Save route to dic
-    dic_routes['multigraph'] = multigraph_edges_with_weights
     print("Multigraph: ", multigraph_edges_with_weights)
     # Euler tour is route that might visit one node multiple times
     euler_tour = find_eulerian_circuit(multigraph_edges_with_weights, selected_points)
     print("Euler tour: ", euler_tour)
-    #Save route to dic
-    dic_routes['euler'] = euler_tour
 
     # Hamiltonian Circuit bypasses the multiple accessed node so that every node gets visisted exactly once
     hamiltonian_circuit = eulerian_to_hamiltonian(euler_tour)
     hamiltonian_circuit.append((hamiltonian_circuit[0]))  # Add the last point back to the first point
     print("Hamiltonian circuit: ", hamiltonian_circuit)
-    #Save route to dic
-    dic_routes['hamiltonian'] = hamiltonian_circuit
 
-    return hamiltonian_circuit
+    return mst_edges, multigraph_edges_with_weights, euler_tour, hamiltonian_circuit
 
 def find_shortcut_route(matrix, route):
     # Check if the edges have shortcuts with dijerkas
@@ -642,20 +641,25 @@ def calculate_path():
     # Decide whether to search for A->B or via several pickup points
     if pickup_indices:
         # Only execute the right order Algo if more than 5 Points are selected
+        mst_edges, multigraph_edges_with_weights, euler_tour, hamiltonian_circuit = find_circular_route(adj_matrix_algo, selected_points)
+        #Save route to dic
+        dic_routes['mst'] = mst_edges
+        dic_routes['multigraph'] = multigraph_edges_with_weights
+        dic_routes['euler'] = euler_tour
+        dic_routes['hamiltonian'] = hamiltonian_circuit
+        hamiltonian_optimised = find_shortcut_route(adj_matrix_algo, hamiltonian_circuit)
+        dic_routes['hamilton_dijerka'] = hamiltonian_optimised
+        print("Best circuit found:", " -> ".join(hamiltonian_optimised))
         if len(selected_points) >= 5:
             circuit_right_order = finding_circular_route_in_right_order(adj_matrix_algo, selected_points)
             print("Best Circuit in right order found: ", circuit_right_order)
             dic_routes['circuit_right_order'] = circuit_right_order
-            circuit_right_order_shortcut = find_shortcut_route(adj_matrix_algo, circuit_right_order)
-            dic_routes['hamilton_dijerka'] = circuit_right_order_shortcut
-            print("Circuit with the right Order, optimized with Djerka: ", circuit_right_order_shortcut)
-            draw_route_into_graph(circuit_right_order_shortcut,'red', f"Circuit with the right Order, optimized with Djerka: ")
+            circuit_right_order_optimised = find_shortcut_route(adj_matrix_algo, circuit_right_order)
+            dic_routes['hamilton_dijkstras_right_order'] = circuit_right_order_optimised
+            print("Circuit with the right Order, optimized with Djerka: ", circuit_right_order_optimised)
+            draw_route_into_graph(circuit_right_order_optimised,'red', f"Circuit with the right Order, optimized with Djerka: ")
         else:
-            hamiltonian_route = find_circular_route(adj_matrix_algo, selected_points)
-            hamiltonian_shortcut = find_shortcut_route(adj_matrix_algo, hamiltonian_route)
-            dic_routes['hamilton_dijerka'] = hamiltonian_shortcut
-            print("Best circuit found:", " -> ".join(hamiltonian_shortcut))
-            draw_route_into_graph(hamiltonian_shortcut,'red', f"Hamilton optimized with Dijerkas: ")
+            draw_route_into_graph(hamiltonian_optimised,'red', f"Hamilton optimized with Dijerkas: ")
     else:
         best_route = find_shortest_path_dijkstras(adj_matrix_algo, start_index, end_index)
         print("Best route found:", " -> ".join(best_route))
