@@ -380,7 +380,7 @@ def eulerian_to_hamiltonian(eulerian_circuit):
 def finding_circular_route_in_right_order(matrix, selected_points):
     """
     Steps:
-    1. Create a circuit among the kids.
+    1. Create a circuit only among the kids.
     2. Find the nearest kid to the taxi.
     3. Determine the shorter direction (clockwise or counterclockwise) for the kids' circuit.
     4. Add the return path from school to the taxi.
@@ -413,7 +413,7 @@ def finding_circular_route_in_right_order(matrix, selected_points):
         next_elem = lst[idx + 1] if idx < len(lst) - 1 else lst[0]
         return [prev_elem, next_elem]
     
-    def determine_best_route(matrix, circuit_kids, nearest_kid_index, neighbors, school_index, taxi_kid_route):
+    def determine_best_route(matrix, circuit_kids, nearest_kid_index, neighbors, school_index, taxi_kid_route, taxi_index):
         """
         Determine the shorter direction (clockwise or counterclockwise) for the kids' circuit
         and calculate the best route to the school.
@@ -422,33 +422,28 @@ def finding_circular_route_in_right_order(matrix, selected_points):
         best_weight = float('inf')
         print("Circuit kids: ",circuit_kids)
 
-        edges_kids = convert_to_edges(circuit_kids)
-
         school_taxi_route = find_shortest_path_dijkstras(matrix, school_index, taxi_index)
         school_taxi_edges = convert_to_edges(school_taxi_route)
 
         for neighbor in neighbors:
             # Find the route from the neighbor to the school
             kid_school_route = find_shortest_path_dijkstras(matrix, neighbor, school_index)
-
-            # Remove the edge connecting the nearest kid and the neighbor
-            edge_to_remove = (nearest_kid_index, neighbor)
-            reversed_edge = tuple(reversed(edge_to_remove))
-            modified_circuit = edges_kids[:]
-
-            if edge_to_remove in modified_circuit:
-                modified_circuit.remove(edge_to_remove)
-            elif reversed_edge in modified_circuit:
-                modified_circuit.remove(reversed_edge)
             
+            print("Befor modify: ", circuit_kids, neighbor)
+            # Rearrange the list to start from the nearest kid and keep the order
+            modified_circuit = circuit_kids[nearest_kid_index:] + circuit_kids[:nearest_kid_index]
+            print("After modify: ", modified_circuit, neighbor)
+            print("\n")
             taxi_kid_edges = convert_to_edges(taxi_kid_route)
+            modified_circuit_edges = convert_to_edges(modified_circuit)
+            kid_school_edges = convert_to_edges(kid_school_route)
+            print("Taxi kid edges: ", taxi_kid_edges)            
+            print("Modified: ", modified_circuit_edges)            
+            print("Kid_school_route: ", kid_school_edges)
             print("School Taxi edges: ", school_taxi_edges)
-            print("Modified: ", modified_circuit)
-            print("Kid_school_route: ", kid_school_route)
-            print("Taxi kid edges: ", taxi_kid_edges)
             # Create the full route
-            full_route = convert_to_edges(taxi_kid_route) + modified_circuit + kid_school_route + school_taxi_edges
-            print(full_route)
+            full_route = taxi_kid_edges + modified_circuit_edges + kid_school_edges + school_taxi_edges
+            print("Full Route: " , full_route)
             total_weight = calculate_total_edge_weight(full_route)
 
             # Update the best route if this one is better
@@ -470,10 +465,11 @@ def finding_circular_route_in_right_order(matrix, selected_points):
 
     # Step 3: Find neighbors of the nearest kid in the circuit
     kids_neighbors_indices = get_neighbors(kids_indices, nearest_kid_index)
-    print("Neighbors of the nearest kid:", kids_neighbors_indices)
+    kids_neighbors = index_to_char(kids_neighbors_indices)
+    print("Neighbors of the nearest kid:", kids_neighbors)
 
     # Step 4: Determine the shorter direction and calculate the best route
-    best_route, best_weight = determine_best_route(matrix, circuit_kids, nearest_kid_index, kids_neighbors_indices, school_index, fastest_taxi_kid_route)
+    best_route, best_weight = determine_best_route(matrix, circuit_kids, nearest_kid_index, kids_neighbors_indices, school_index, fastest_taxi_kid_route, taxi_index)
     print("Best route:", best_route)
     print("Best route weight:", best_weight)
 
@@ -630,6 +626,7 @@ def calculate_path():
             circuit_right_order = finding_circular_route_in_right_order(adj_matrix_algo, selected_points)
             print("Best Circuit in right order found: ", circuit_right_order)
             circuit_right_order_shortcut = find_shortcut_route(adj_matrix_algo, circuit_right_order)
+            dic_routes['hamilton_dijerka'] = circuit_right_order_shortcut
             print("Circuit with the right Order, optimized with Djerka: ", circuit_right_order_shortcut)
             draw_route_into_graph(circuit_right_order_shortcut,'red', f"Circuit with the right Order, optimized with Djerka: ")
         else:
