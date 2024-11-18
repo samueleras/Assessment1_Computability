@@ -607,9 +607,12 @@ def get_selected_points(selected_points):
     return start_point, end_point, pickup_points
 
 def calculate_path():
+    global calculation_started
     if not selected_points: 
         print("Error: Please select at least a start and a finish point.")
         return
+    
+    calculation_started = True
     start_index, end_index, pickup_indices = get_selected_points(selected_points)
     
     # Decide whether to search for A->B or via several pickup points
@@ -638,7 +641,7 @@ def calculate_path():
 
 
 def initialize_variables():
-    global selected_points, labels, current_label, selection_finished, selected_modus, node_texts, dic_routes
+    global selected_points, labels, current_label, selection_finished, selected_modus, node_texts, dic_routes, calculation_started
     selected_modus = 'route' # Start modus # or 'circuit'
     selected_points = []
     labels= ['start', 'finish']  # Labels for selection
@@ -646,6 +649,7 @@ def initialize_variables():
     selection_finished = False  # Flag to indicate selection is finished
     node_texts = []
     dic_routes = {} # Store all calculated paths
+    calculation_started = False
 
 def reset_plot():
     initialize_variables()
@@ -784,7 +788,6 @@ def convert_to_edges(route):
 
     return edges
 
-
 def convert_edges_to_route(edges):
     route = []
     for n in range(len(edges)):
@@ -910,8 +913,8 @@ def create_gui():
 
 # Function to handle click events
 def on_click(event):
-    global current_label, selection_finished, change_mode_button, node_texts
-    if current_label >= len(labels) and selection_finished:  # If finished selecting, do nothing
+    global current_label, selection_finished, change_mode_button, node_texts, calculation_started
+    if current_label >= len(labels) and selection_finished or calculation_started:  # If finished selecting, do nothing
         return
 
     # Find the closest node to the clicked point
