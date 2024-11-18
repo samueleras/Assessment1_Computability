@@ -358,7 +358,7 @@ def remove_consecutive_duplicates_in_edge_list(lst):
     return result
     
 
-# Travelling Salesman Problem. Shortest path from A to B while traversing preselected nodes
+#Travelling Salesman Problem. Shortest path from A to B while traversing preselected nodes
 def find_circular_route(matrix, selected_points):
 
     print("Selected points are: ", selected_points)
@@ -369,34 +369,29 @@ def find_circular_route(matrix, selected_points):
         print(f"{u} -- {v} (Weight: {weight})")
     print(f"Total cost of the Minimum Spanning Tree: {total_cost}")
 
-    # Odd Degree vertices of MST
+    #find odd degree vertices in mst
     odd_vertices = find_odd_degree_vertices(mst_edges, selected_points)
-    # As long as there are odd vertices add edges
+    #as long as there are odd vertices add edges
     while odd_vertices:
         print("Vertices with odd degrees:", odd_vertices)
-
-        # Find minimum-cost perfect matching for odd vertices
+        #find minimum-cost perfect matching for odd vertices
         matching = edmonds_blossom(matrix, odd_vertices, mst_edges)
         print("Minimum-cost perfect matching:", matching)
 
-        # Combine MST and matching to form the multigraph
+        #combine MST and matching as multigraph
         multigraph_edges_with_weights = mst_edges + matching   
-        print("Combined edges in the multigraph (MST + Matching):")
+        print("Combined edges in the multigraph (MST + Matching): ")
         for u, v, weight in multigraph_edges_with_weights:
             print(f"{u} -- {v} (Weight: {weight})")
         
         odd_vertices = find_odd_degree_vertices(multigraph_edges_with_weights, selected_points)
-
-        # For debuging
-        if not odd_vertices:
-            print("No vertices with odd degrees")
     
     print("Multigraph: ", multigraph_edges_with_weights)
-    # Euler tour is route that might visit one node multiple times
+    #find euler tour  (route that might visit one node multiple times)
     euler_tour = find_eulerian_circuit(multigraph_edges_with_weights, selected_points)
     print("Euler tour: ", euler_tour)
 
-    # Hamiltonian Circuit bypasses the multiple accessed node so that every node gets visisted exactly once
+    #find Hamiltonian Circuit (bypasses the multiple accessed node so that every node gets visisted exactly once)
     hamiltonian_circuit = eulerian_to_hamiltonian(euler_tour)
     hamiltonian_circuit.append((hamiltonian_circuit[0]))  # Add the last point back to the first point
     print("Hamiltonian circuit: ", hamiltonian_circuit)
