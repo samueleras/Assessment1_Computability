@@ -493,38 +493,42 @@ def get_selected_points(selected_points):
 
 def calculate_path():
     global calculation_started
+    #Do nothing if no points are selected
     if not selected_points: 
         print("Error: Please select at least a start and a finish point.")
         return
     
-    calculation_started = True
+    calculation_started = True  #Indicates that now no further points can be selected (click listener reads this value)
     start_index, end_index, pickup_indices = get_selected_points(selected_points)
     
-    # Decide whether to search for A->B or via several pickup points
-    if selected_modus == 'circuit':
-        # Only execute the right order Algo if more than 5 Points are selected
-        mst_edges, multigraph_edges_with_weights, euler_tour, hamiltonian_circuit = find_circular_route(adj_matrix_algo, selected_points)
-        #Save route to dic
+    #Choose calculation depending on mode
+    if selected_modus == 'circuit':     #Taxi problem calculation
+        #Calculate mst, multigraph, euler tour, hamiltonian circuit
+        mst_edges, multigraph_edges_with_weights, euler_tour, hamiltonian_circuit = find_circular_route(adj_matrix, selected_points)
+        #Save routes to dictionary to draw them later
         dic_routes['mst'] = mst_edges
         dic_routes['multigraph'] = multigraph_edges_with_weights
         dic_routes['euler'] = euler_tour
         dic_routes['hamiltonian'] = hamiltonian_circuit
-        hamiltonian_optimised = find_shortcut_route(adj_matrix_algo, hamiltonian_circuit)
-        dic_routes['hamiltonian_dijkstras'] = hamiltonian_optimised
-        print("Best circuit found:", " -> ".join(hamiltonian_optimised))
-        circuit_right_order = finding_circular_route_in_right_order(adj_matrix_algo, selected_points)
-        print("Best Circuit in right order found: ", circuit_right_order)
-        dic_routes['circuit_right_order'] = circuit_right_order
-        circuit_right_order_optimised = find_shortcut_route(adj_matrix_algo, circuit_right_order)
-        dic_routes['hamilton_dijkstras_right_order'] = circuit_right_order_optimised
-        print("Circuit with the right Order, optimized with Djerka: ", circuit_right_order_optimised)
-        draw_route_into_graph(circuit_right_order_optimised,'red', f"Circuit with the right Order, optimized with Djerka: ")
-    else:
-        best_route = find_shortest_path_dijkstras(adj_matrix_algo, start_index, end_index)
-        print("Best route found:", " -> ".join(best_route))
-        draw_route_into_graph(best_route,'red', f"Shortest Path from {index_to_char(start_index)} to {index_to_char(end_index)}")
+        print("Hamiltonian Circuit:", " -> ".join(hamiltonian_circuit))
+        #Calculate optimised route for hamiltonian circuit
+        hamiltonian_optimised = find_shortcut_route(adj_matrix, hamiltonian_circuit)
+        dic_routes['hamiltonian_dijkstras'] = hamiltonian_optimised #save route for drawing
+        print("Hamiltonian Circuit optimised:", " -> ".join(hamiltonian_optimised))
+        circuit_right_order = finding_circular_route_in_right_order(adj_matrix, selected_points) #Find the hamiltonian circuit but with the school coming last before returning to taxi rank
+        dic_routes['circuit_right_order'] = circuit_right_order #save route for drawing
+        print("Circuit in right order: ", circuit_right_order)
+        circuit_right_order_optimised = find_shortcut_route(adj_matrix, circuit_right_order) #Optimize the right order hamiltonian circuit with dijkstras
+        dic_routes['hamilton_dijkstras_right_order'] = circuit_right_order_optimised #save route for drawing
+        print("Circuit in right order optimised: ", circuit_right_order_optimised)
+        draw_route_into_graph(circuit_right_order_optimised,'red', f"Circuit with the right Order, optimized with Djerka: ") #Draw the route
+    else:   #Route end to end calculation
+        best_route = find_shortest_path_dijkstras(adj_matrix, start_index, end_index)
+        print("Best Route:", " -> ".join(best_route))
+        draw_route_into_graph(best_route,'red', f"Shortest Path from {index_to_char(start_index)} to {index_to_char(end_index)}")   #Draw the route
 
 
+#Initialze variables or reset them to default if already initialized
 def initialize_variables():
     global selected_points, selection_finished, selected_modus, dic_routes, calculation_started
     selected_modus = globals().get('selected_modus', 'route') #Init modus to route if it is not already set
@@ -534,16 +538,16 @@ def initialize_variables():
     calculation_started = False
 
 def reset_plot():
-    initialize_variables()
-    # Clear the current axes and redraw the graph
-    ax.clear()  # Clear the axes before redrawing
-    # Set the color of all nodes to 'skyblue'
+    initialize_variables()  #Reset the variables
+    ax.clear()  #Clear axes
+    #Reset the color of all nodes to skyblue
     for node in G.nodes:
         G.nodes[node]['color'] = 'skyblue'
-    nx.draw(G, pos,with_labels=True, node_color='skyblue', node_size=500, ax=ax)
-    # Draw edge labels (distances)
+    nx.draw(G, pos,with_labels=True, node_color='skyblue', node_size=500, ax=ax) #draw the graph
+    #Draw labels with weights
     edge_labels = nx.get_edge_attributes(G, 'weight')
     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
+    #Set title depending on mode
     if selected_modus == 'circuit':
         plt.title('Select Taxi, School, and pickup/drop-off points')
     else:
@@ -551,53 +555,45 @@ def reset_plot():
     plt.draw()
 
 def upload_csv():
-    # Show file dialog to select the CSV file
+    #Show file dialog for csv file upload
     selected_file = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
-    # If no file is selected, return
+    #return on no selected file
     if not selected_file:
         return None
-    # Overwrite currently used matrix
+    #overwrite the current csv
     shutil.copy2(selected_file, file_path)
     print(f"Saved file.")
     initialize_variables()  #Resets all graph related variables
-    read_csv()
-    create_graph()
-    plot_graph()
+    read_csv()  #Read csv
+    create_graph()  #Create graph
+    plot_graph()    #Plot the graph
 
 def read_csv():
-    global adj_matrix_graph, adj_matrix_algo
-    # Load the CSV file (Adjacency Matrix)
-    adj_matrix_graph = pd.read_csv(file_path, delimiter=';', index_col=0)
+    global adj_matrix
+    #Load the CSV file
+    adj_matrix = pd.read_csv(file_path, delimiter=';', index_col=0)
 
-    # Replace empty cells with NaN and convert to numeric
-    adj_matrix_graph.replace("", float('nan'), inplace=True)
-    adj_matrix_graph = adj_matrix_graph.apply(pd.to_numeric, errors='coerce')
-    # Mirror the matrix to ensure symmetry
-    adj_matrix_graph = adj_matrix_graph.combine_first(adj_matrix_graph.transpose())
-
-    # Copy matrix to use for algorithm
-    adj_matrix_algo = adj_matrix_graph.copy()
-    # Replace NaN values with float('inf') for the algorithm
-    #adj_matrix_algo.fillna(float('inf'), inplace=True)             #Do we really need this? Also works with nan
-
-    print(adj_matrix_graph)
-    print(adj_matrix_algo)
+    #Replace empty cells with NaN and convert to numeric
+    adj_matrix.replace("", float('nan'), inplace=True)
+    adj_matrix = adj_matrix.apply(pd.to_numeric, errors='coerce')
+    #Mirror the matrix for symmetry
+    adj_matrix = adj_matrix.combine_first(adj_matrix.transpose())
 
 def create_graph():
     global G
     # Create a graph
     G = nx.Graph()
 
-    # Add nodes and edges based on the adjacency matrix
-    for i, row in adj_matrix_graph.iterrows():
-        G.add_node(i)  # Add the postal area as a node
+    #Add nodes and edges based on the adjacency matrix
+    for i, row in adj_matrix.iterrows():
+        G.add_node(i)
         for j, distance in row.items():
-            if pd.notna(distance) and distance > 0:  # Valid distance
-                G.add_edge(i, j, weight=distance)  # Add an edge with the weight
+            if pd.notna(distance) and distance > 0:  #Check if distance valid
+                G.add_edge(i, j, weight=distance)  #Add edge with weight
 
-    # Print available nodes for debugging
     print("Available nodes in the graph:", G.nodes)
 
+#Switch between route and circuit mode
 def change_mode():
     global change_mode_button, selected_modus
     text_route = "Mode: Route   (Switch with S)"
@@ -605,9 +601,11 @@ def change_mode():
     if selected_points:
         print("Can only change the Mode before choosing points!")
         return
+    #Switch to route mode, remove the buttons that are not needed
     if selected_modus == 'circuit':
-        change_mode_button.config(text=text_route)
-        selected_modus = 'route'
+        change_mode_button.config(text=text_route) #Adjust change button text
+        selected_modus = 'route'    #Change modus
+        #Remove buttons
         show_mst_button.pack_forget()
         show_matching_button.pack_forget()
         show_euler_button.pack_forget()
@@ -615,11 +613,13 @@ def change_mode():
         show_hamilton_dijkstras_button.pack_forget()
         show_circuit_right_order_button.pack_forget()
         show_circuit_right_order_dijkstras_button.pack_forget()
-        plt.title('Select Start and End')
+        plt.title('Select Start and End')   #Set title
         plt.draw()
     else:
-        change_mode_button.config(text=text_circuit)
-        selected_modus = 'circuit'
+        #Switch to circuit mode, add the buttons that are needed
+        change_mode_button.config(text=text_circuit) #Adjust change button text
+        selected_modus = 'circuit' #Change modus
+        #Add buttons needed for route mode
         show_mst_button.pack(side='left', padx=5, pady=5)
         show_matching_button.pack(side='left', padx=5, pady=5)
         show_euler_button.pack(side='left', padx=5, pady=5)
@@ -627,18 +627,18 @@ def change_mode():
         show_hamilton_dijkstras_button.pack(side='left', padx=5, pady=5)
         show_circuit_right_order_button.pack(side='left', padx=5, pady=5)
         show_circuit_right_order_dijkstras_button.pack(side='left', padx=5, pady=5)
-        plt.title('Select Taxi, School, and pickup/drop-off points')
+        plt.title('Select Taxi, School, and pickup/drop-off points') #Set title
         plt.draw()
 
 # Function to plot the graph
 def plot_graph():
-    ax.clear()
     global pos
-    pos = nx.spring_layout(G)  # Positions for all nodes
-    nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=500, ax=ax)
-    # Draw edge labels (distances)
-    edge_labels = nx.get_edge_attributes(G, 'weight')
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
+    ax.clear()
+    pos = nx.spring_layout(G)  #get positions for all nodes
+    nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=500, ax=ax) #Draw graph
+    edge_labels = nx.get_edge_attributes(G, 'weight')  #Get all weights of the graph
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)  #Label all edges with the weights
+    #Set the title depending on the current mode
     if selected_modus == 'circuit':
         plt.title('Select Taxi, School, and pickup/drop-off points')
     else:
@@ -695,67 +695,79 @@ def calculate_total_edge_weight(edges):
     total_weight = 0
     for edge in edges:
         start, end = edge
-        weight = adj_matrix_algo[start][end]
+        weight = adj_matrix[start][end]
         total_weight += weight
     return total_weight
 
 # Draw a route onto an existing graph and highlighting it
 def draw_route_into_graph(route, color='orange', plot_text=''):
-    global dic_routes
 
+    #Clear current plot
     ax.clear()
-    # Convert the route to edges if it’s in node format
-    route_edges = convert_to_edges(route)
-    route = convert_edges_to_route(route_edges)
-    for label in ax.texts:
-        label.remove()
-    # Retrieve current colors from node attributes
-    node_colors = [G.nodes[node].get('color', 'skyblue') for node in G.nodes]
 
+    #Convert the route to edges if it’s in node format
+    route_edges = convert_to_edges(route)
+
+    #Convert the edges to route
+    route = convert_edges_to_route(route_edges)
+
+    #Create list with color of each node
+    node_colors = []
+    for node in G.nodes:
+        edge_color = G.nodes[node].get('color', 'skyblue')  #get color, else use skyblue as default
+        node_colors.append(edge_color)
+
+    #Draw graph
     nx.draw(G, pos, with_labels=True, node_size=500, ax=ax, edge_color='gray', node_color=node_colors)
-    # Highlight the specified route edges with the given color
+
+    #Highlight the route edges with the given color
     nx.draw_networkx_edges(G, pos, edgelist=route_edges, edge_color=color, width=3, ax=ax)
 
-    highlighted_edge_labels = {edge: G[edge[0]][edge[1]]['weight'] for edge in route_edges}
+    #Draw edge weight
+    highlighted_edge_labels = {}
+    for edge in route_edges:
+        highlighted_edge_labels[edge] = G[edge[0]][edge[1]]['weight']
     nx.draw_networkx_edge_labels(G, pos, edge_labels=highlighted_edge_labels, font_size=8, ax=ax)
 
-    # Calculate the total route cost and set plot title
+    #Calculate the total route cost and set plot title
     total_cost = calculate_total_edge_weight(route_edges)
     ax.set_title(f"{plot_text}\nRoute: {' -> '.join(route)}\nTotal Cost: {total_cost}")
 
-    # Render the plot
+    #Render the plot
     plt.draw()
 
 def create_gui():
-    root = Tk()
-    root.title("Computability and Optimisation Assignment 1")
+    global frame, canvas, fig, ax, change_mode_button, show_mst_button, show_matching_button, show_euler_button, show_hamiltonian_button, show_hamilton_dijkstras_button, show_circuit_right_order_button, show_circuit_right_order_dijkstras_button
 
-    # Set the window size
+    root = Tk() #Init Tkinter window
+    root.title("Computability and Optimisation Assignment 1") #Set title
+
+    #Set default window size
     window_width = 1300
     window_height = 900
 
-    # Get the screen's width and height
+    #Get screen's width and height
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
 
-    # Calculate the position to center the window
+    #Calculate the position to center the window
     position_x = (screen_width // 2) - (window_width // 2)
     position_y = (screen_height // 2) - (window_height // 2)
 
-    # Set the geometry with position
+    #Set the geometry with position
     root.geometry(f"{window_width}x{window_height}+{position_x}+{position_y}")
+
+    #Set window to fullscreen
     root.state("zoomed")
 
-    # Create a frame for the plot
-    global frame, canvas, change_mode_button, show_mst_button, show_matching_button, show_euler_button, show_hamiltonian_button, show_hamilton_dijkstras_button, show_circuit_right_order_button, show_circuit_right_order_dijkstras_button
+    #Create a frame for the plot
     frame = Frame(root)
     frame.pack(fill="both", expand=True, pady=20)
 
-    # Create Button to display and changecurrent Mode
+    #Create buttons
     change_mode_button = Button(root, text="Mode: Route   (Switch with S)", command=lambda: change_mode())
     change_mode_button.pack(side='left', padx=5, pady=5) 
 
-    # Create buttons
     calculate_button = Button(root, text="Calculate Path (Enter)", command=calculate_path)
     calculate_button.pack(side='left', padx=5, pady=5)
 
@@ -779,16 +791,17 @@ def create_gui():
 
     show_circuit_right_order_dijkstras_button = Button(root, text="Circuit in Order Optimised", command=lambda: draw_route_into_graph(dic_routes['hamilton_dijkstras_right_order'], color='red', plot_text='Right Order Optimised with Dijkstras'))
 
-    global fig, ax
-    fig, ax = plt.subplots(figsize=(12, 8))  # Set figure size
+    #create matplotlib figure
+    fig, ax = plt.subplots(figsize=(12, 8))  #default figure size
+    #Link event handlers
     fig.canvas.mpl_connect('button_press_event', on_click)
     fig.canvas.mpl_connect('key_press_event', on_key)
+    #Embed the plot into the Tkinter GUI
     canvas = FigureCanvasTkAgg(fig, master=frame)
-    canvas.get_tk_widget().pack(fill="both", expand=True)
-
+    canvas.get_tk_widget().pack(fill="both", expand=True)   #expand canvas to full window size
+    #Plot the graph
     plot_graph()
-
-    # Run the GUI loop
+    #Run the GUI loop
     root.mainloop()
 
 
@@ -797,8 +810,9 @@ def create_gui():
 
 # Function to handle click events
 def on_click(event):
+    #If finished selecting, calculation already started, or 2 nodes selected in route mode, return and do nothing
     global selection_finished, change_mode_button, calculation_started
-    if selection_finished or calculation_started or (selected_modus == 'route' and len(selected_points) == 2):  # If finished selecting, do nothing
+    if selection_finished or calculation_started or (selected_modus == 'route' and len(selected_points) == 2):  
         return
 
     # Find the closest node to the clicked point
@@ -815,11 +829,11 @@ def on_click(event):
         plt.draw()
         return
 
-    # If a node was found, proceed with labeling and coloring
+    #If a node was found, proceed with labeling and coloring
     if closest_node is not None:
         selected_points.append(closest_node)
         x, y = pos[closest_node]
-        if len(selected_points) == 1:  # Label and highlight the "start" point
+        if len(selected_points) == 1:  #Label and highlight the "start" point
             label = 'Taxi' if selected_modus == 'circuit' else 'Start'
             print(f'Selected {label} point: {closest_node}')
             nx.draw_networkx_nodes(G, pos, nodelist=[closest_node], node_color='green', node_size=500)
@@ -831,7 +845,7 @@ def on_click(event):
                 bbox=dict(facecolor='lightgrey', edgecolor='black', boxstyle='round,pad=0.5')
             )
 
-        elif len(selected_points) == 2:  # Label and highlight the "finish" point
+        elif len(selected_points) == 2:  #Label and highlight the "finish" point
             label = 'School' if selected_modus == 'circuit' else 'End'
             print(f'Selected {label} point: {closest_node}')
             nx.draw_networkx_nodes(G, pos, nodelist=[closest_node], node_color='b', node_size=500)
@@ -843,24 +857,24 @@ def on_click(event):
                 bbox=dict(facecolor='lightgrey', edgecolor='black', boxstyle='round,pad=0.5')
             )
 
-        else:  # Label and highlight any additional points as pickup/drop-off points
+        else:  #Label and highlight any additional points as pickup/drop-off points
             print(f'Selected pickup/drop-off point: {closest_node}')
             nx.draw_networkx_nodes(G, pos, nodelist=[closest_node], node_color='r', node_size=500)
             G.nodes[closest_node]['color'] = 'r'
     plt.draw()
     
 
-# Function to handle key press events
+#Function to handle key press events
 def on_key(event):
     if event.key == 'enter':
         global selection_finished
-        selection_finished = True  # Set the flag to indicate selection is finished
+        selection_finished = True  #Set the flag to indicate selection is finished
         print("Selection finished.")
-        calculate_path()  # Call the programm function to compute and visualize the route
+        calculate_path()  #Call the programm function to compute and visualize the route
     elif event.key == 'backspace':
-        reset_plot() # Reset current selections and reset plot
+        reset_plot() #Reset current selections and reset plot
     elif event.key == 'u':
-        upload_csv() # Upload csv
+        upload_csv() #Upload csv
     elif event.key == 's':
         change_mode()
 
