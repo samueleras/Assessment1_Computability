@@ -641,11 +641,9 @@ def calculate_path():
 
 
 def initialize_variables():
-    global selected_points, labels, current_label, selection_finished, selected_modus, dic_routes, calculation_started
-    selected_modus = 'route' # Start modus # or 'circuit'
+    global selected_points, selection_finished, selected_modus, dic_routes, calculation_started
+    selected_modus = globals().get('selected_modus', 'route') #Init modus to route if it is not already set
     selected_points = []
-    labels= ['start', 'finish']  # Labels for selection
-    current_label = 0  # To keep track of what the user is selecting
     selection_finished = False  # Flag to indicate selection is finished
     dic_routes = {} # Store all calculated paths
     calculation_started = False
@@ -661,7 +659,10 @@ def reset_plot():
     # Draw edge labels (distances)
     edge_labels = nx.get_edge_attributes(G, 'weight')
     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
-    plt.title('Select start, finish, and pickup/drop-off points')
+    if selected_modus == 'circuit':
+        plt.title('Select Taxi, School, and pickup/drop-off points')
+    else:
+        plt.title('Select Start and End')
     plt.draw()
 
 def upload_csv():
@@ -719,7 +720,7 @@ def change_mode():
     if selected_points:
         print("Can only change the Mode before choosing points!")
         return
-    if change_mode_button.cget("text") == text_circuit:
+    if selected_modus == 'circuit':
         change_mode_button.config(text=text_route)
         selected_modus = 'route'
         show_mst_button.pack_forget()
@@ -729,6 +730,8 @@ def change_mode():
         show_hamilton_dijkstras_button.pack_forget()
         show_circuit_right_order_button.pack_forget()
         show_circuit_right_order_dijkstras_button.pack_forget()
+        plt.title('Select Start and End')
+        plt.draw()
     else:
         change_mode_button.config(text=text_circuit)
         selected_modus = 'circuit'
@@ -739,6 +742,8 @@ def change_mode():
         show_hamilton_dijkstras_button.pack(side='left', padx=5, pady=5)
         show_circuit_right_order_button.pack(side='left', padx=5, pady=5)
         show_circuit_right_order_dijkstras_button.pack(side='left', padx=5, pady=5)
+        plt.title('Select Taxi, School, and pickup/drop-off points')
+        plt.draw()
 
 # Function to plot the graph
 def plot_graph():
@@ -749,7 +754,10 @@ def plot_graph():
     # Draw edge labels (distances)
     edge_labels = nx.get_edge_attributes(G, 'weight')
     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
-    plt.title('Select start, finish, and pickup/drop-off points')
+    if selected_modus == 'circuit':
+        plt.title('Select Taxi, School, and pickup/drop-off points')
+    else:
+        plt.title('Select Start and End')
     plt.draw()
 
 # Convert to edges that are drawable for networkx
@@ -904,8 +912,8 @@ def create_gui():
 
 # Function to handle click events
 def on_click(event):
-    global current_label, selection_finished, change_mode_button, calculation_started
-    if current_label >= len(labels) and selection_finished or calculation_started:  # If finished selecting, do nothing
+    global selection_finished, change_mode_button, calculation_started
+    if selection_finished or calculation_started or (selected_modus == 'route' and len(selected_points) == 2):  # If finished selecting, do nothing
         return
 
     # Find the closest node to the clicked point
@@ -926,35 +934,34 @@ def on_click(event):
     if closest_node is not None:
         selected_points.append(closest_node)
         x, y = pos[closest_node]
-        if current_label == 0:  # Label and highlight the "start" point
-            print(f'Selected {labels[current_label]} point: {closest_node}')
+        if len(selected_points) == 1:  # Label and highlight the "start" point
+            label = 'Taxi' if selected_modus == 'circuit' else 'Start'
+            print(f'Selected {label} point: {closest_node}')
             nx.draw_networkx_nodes(G, pos, nodelist=[closest_node], node_color='green', node_size=500)
             G.nodes[closest_node]['color'] = 'green'
             plt.text(
-                x, y + 0.08, 'Taxi' if selected_modus == 'circuit' else 'Start',
+                x, y + 0.08, label,
                 horizontalalignment='center',
                 fontweight='bold',
                 bbox=dict(facecolor='lightgrey', edgecolor='black', boxstyle='round,pad=0.5')
             )
-            current_label = 1
 
-        elif current_label == 1:  # Label and highlight the "finish" point
-            print(f'Selected {labels[current_label]} point: {closest_node}')
+        elif len(selected_points) == 2:  # Label and highlight the "finish" point
+            label = 'School' if selected_modus == 'circuit' else 'End'
+            print(f'Selected {label} point: {closest_node}')
             nx.draw_networkx_nodes(G, pos, nodelist=[closest_node], node_color='b', node_size=500)
             G.nodes[closest_node]['color'] = 'b'
             plt.text(
-                x, y + 0.08, 'School' if selected_modus == 'circuit' else 'End',
+                x, y + 0.08, label,
                 horizontalalignment='center',
                 fontweight='bold',
                 bbox=dict(facecolor='lightgrey', edgecolor='black', boxstyle='round,pad=0.5')
             )
-            current_label = 2
 
         else:  # Label and highlight any additional points as pickup/drop-off points
             print(f'Selected pickup/drop-off point: {closest_node}')
             nx.draw_networkx_nodes(G, pos, nodelist=[closest_node], node_color='r', node_size=500)
             G.nodes[closest_node]['color'] = 'r'
-            current_label += 1
     plt.draw()
     
 
