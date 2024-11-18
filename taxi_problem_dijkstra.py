@@ -616,7 +616,7 @@ def calculate_path():
     start_index, end_index, pickup_indices = get_selected_points(selected_points)
     
     # Decide whether to search for A->B or via several pickup points
-    if pickup_indices:
+    if selected_modus == 'circuit':
         # Only execute the right order Algo if more than 5 Points are selected
         mst_edges, multigraph_edges_with_weights, euler_tour, hamiltonian_circuit = find_circular_route(adj_matrix_algo, selected_points)
         #Save route to dic
@@ -641,13 +641,12 @@ def calculate_path():
 
 
 def initialize_variables():
-    global selected_points, labels, current_label, selection_finished, selected_modus, node_texts, dic_routes, calculation_started
+    global selected_points, labels, current_label, selection_finished, selected_modus, dic_routes, calculation_started
     selected_modus = 'route' # Start modus # or 'circuit'
     selected_points = []
     labels= ['start', 'finish']  # Labels for selection
     current_label = 0  # To keep track of what the user is selecting
     selection_finished = False  # Flag to indicate selection is finished
-    node_texts = []
     dic_routes = {} # Store all calculated paths
     calculation_started = False
 
@@ -809,7 +808,7 @@ def calculate_total_edge_weight(edges):
 
 # Draw a route onto an existing graph and highlighting it
 def draw_route_into_graph(route, color='orange', plot_text=''):
-    global node_texts, dic_routes
+    global dic_routes
 
     ax.clear()
     # Convert the route to edges if it’s in node format
@@ -831,14 +830,6 @@ def draw_route_into_graph(route, color='orange', plot_text=''):
     total_cost = calculate_total_edge_weight(route_edges)
     ax.set_title(f"{plot_text}\nRoute: {' -> '.join(route)}\nTotal Cost: {total_cost}")
 
-
-    for x, y, text in node_texts:
-        plt.text(
-        x, y + 0.08, text,
-        horizontalalignment='center',
-        fontweight='bold',
-        bbox=dict(facecolor='lightgrey', edgecolor='black', boxstyle='round,pad=0.5')
-        )
     # Render the plot
     plt.draw()
 
@@ -913,7 +904,7 @@ def create_gui():
 
 # Function to handle click events
 def on_click(event):
-    global current_label, selection_finished, change_mode_button, node_texts, calculation_started
+    global current_label, selection_finished, change_mode_button, calculation_started
     if current_label >= len(labels) and selection_finished or calculation_started:  # If finished selecting, do nothing
         return
 
@@ -935,17 +926,16 @@ def on_click(event):
     if closest_node is not None:
         selected_points.append(closest_node)
         x, y = pos[closest_node]
-        if current_label == 0:  # Label and highlight the "start" point (School)
+        if current_label == 0:  # Label and highlight the "start" point
             print(f'Selected {labels[current_label]} point: {closest_node}')
             nx.draw_networkx_nodes(G, pos, nodelist=[closest_node], node_color='green', node_size=500)
             G.nodes[closest_node]['color'] = 'green'
             plt.text(
-                x, y + 0.08, 'Taxi',
+                x, y + 0.08, 'Taxi' if selected_modus == 'circuit' else 'Start',
                 horizontalalignment='center',
                 fontweight='bold',
                 bbox=dict(facecolor='lightgrey', edgecolor='black', boxstyle='round,pad=0.5')
             )
-            node_texts.append((x, y, 'Taxi'))
             current_label = 1
 
         elif current_label == 1:  # Label and highlight the "finish" point
@@ -953,19 +943,17 @@ def on_click(event):
             nx.draw_networkx_nodes(G, pos, nodelist=[closest_node], node_color='b', node_size=500)
             G.nodes[closest_node]['color'] = 'b'
             plt.text(
-                x, y + 0.08, 'School',
+                x, y + 0.08, 'School' if selected_modus == 'circuit' else 'End',
                 horizontalalignment='center',
                 fontweight='bold',
                 bbox=dict(facecolor='lightgrey', edgecolor='black', boxstyle='round,pad=0.5')
             )
-            node_texts.append((x, y, 'School'))
             current_label = 2
 
         else:  # Label and highlight any additional points as pickup/drop-off points
             print(f'Selected pickup/drop-off point: {closest_node}')
             nx.draw_networkx_nodes(G, pos, nodelist=[closest_node], node_color='r', node_size=500)
             G.nodes[closest_node]['color'] = 'r'
-            #node_texts.append((x, y, f"Pickup {current_label}"))
             current_label += 1
     plt.draw()
     
