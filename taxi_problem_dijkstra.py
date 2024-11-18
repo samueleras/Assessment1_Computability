@@ -464,11 +464,17 @@ def finding_circular_route_in_right_order(matrix, selected_points):
 
 
     taxi_index, school_index, kids_indices = get_selected_points(selected_points)
+    
+    #If there is only 1 kid, there is no need for this procedure, return path right away
+    if len(kids_indices) == 1:
+        circuit_taxi_kids_school = convert_to_edges([index_to_char(taxi_index), index_to_char(kids_indices[0]), index_to_char(school_index), index_to_char(taxi_index)])
+        print("DEBUG: Best route found:", circuit_taxi_kids_school)
+        return circuit_taxi_kids_school
 
     # Step 1: Create a circular route for the kids
     mst_edges, multigraph_edges_with_weights, euler_tour, circuit_kids = find_circular_route(matrix, index_to_char(kids_indices))
     circuit_kids = circuit_kids[:-1]
-    print("Circuit kids:", circuit_kids)
+    print("Circuit kids removed last:", circuit_kids)
 
     # Step 2: Find the nearest kid to the taxi
     nearest_kid, smallest_weight_taxi_kid, fastest_taxi_kid_route = find_nearest_kid(matrix, taxi_index, kids_indices)
@@ -481,9 +487,6 @@ def finding_circular_route_in_right_order(matrix, selected_points):
 
     # Step 4: Add the way back to the taxi from the school
     circuit_taxi_kids_school = best_route + [(index_to_char(school_index), index_to_char(taxi_index))]
-    
-    # Save the result to the dictionary
-    dic_routes['correct_order_circuit'] = circuit_taxi_kids_school
 
     return circuit_taxi_kids_school
 
@@ -565,7 +568,6 @@ def find_shortcut_route(matrix, route):
 
 # Function to convert characters A-Z to indices 0-25
 def char_to_index(char):
-    #return ord(char.upper()) - ord('A')
     if type(char) == str:
         return ord(char.upper()) - ord('A')
     else:
@@ -622,16 +624,13 @@ def calculate_path():
         hamiltonian_optimised = find_shortcut_route(adj_matrix_algo, hamiltonian_circuit)
         dic_routes['hamiltonian_dijkstras'] = hamiltonian_optimised
         print("Best circuit found:", " -> ".join(hamiltonian_optimised))
-        if len(selected_points) >= 5:
-            circuit_right_order = finding_circular_route_in_right_order(adj_matrix_algo, selected_points)
-            print("Best Circuit in right order found: ", circuit_right_order)
-            dic_routes['circuit_right_order'] = circuit_right_order
-            circuit_right_order_optimised = find_shortcut_route(adj_matrix_algo, circuit_right_order)
-            dic_routes['hamilton_dijkstras_right_order'] = circuit_right_order_optimised
-            print("Circuit with the right Order, optimized with Djerka: ", circuit_right_order_optimised)
-            draw_route_into_graph(circuit_right_order_optimised,'red', f"Circuit with the right Order, optimized with Djerka: ")
-        else:
-            draw_route_into_graph(hamiltonian_optimised,'red', f"Hamilton optimized with Dijerkas: ")
+        circuit_right_order = finding_circular_route_in_right_order(adj_matrix_algo, selected_points)
+        print("Best Circuit in right order found: ", circuit_right_order)
+        dic_routes['circuit_right_order'] = circuit_right_order
+        circuit_right_order_optimised = find_shortcut_route(adj_matrix_algo, circuit_right_order)
+        dic_routes['hamilton_dijkstras_right_order'] = circuit_right_order_optimised
+        print("Circuit with the right Order, optimized with Djerka: ", circuit_right_order_optimised)
+        draw_route_into_graph(circuit_right_order_optimised,'red', f"Circuit with the right Order, optimized with Djerka: ")
     else:
         best_route = find_shortest_path_dijkstras(adj_matrix_algo, start_index, end_index)
         print("Best route found:", " -> ".join(best_route))
@@ -691,7 +690,6 @@ def read_csv():
     adj_matrix_algo = adj_matrix_graph.copy()
     # Replace NaN values with float('inf') for the algorithm
     #adj_matrix_algo.fillna(float('inf'), inplace=True)             #Do we really need this? Also works with nan
-
 
     print(adj_matrix_graph)
     print(adj_matrix_algo)
@@ -890,7 +888,7 @@ def create_gui():
 
     show_hamilton_dijkstras_button = Button(root, text="Hamiltonian Optimised", command=lambda: draw_route_into_graph(dic_routes['hamiltonian_dijkstras'], color='red', plot_text='Hamiltonian tried to optimized with Dijerka'))
 
-    show_circuit_right_order_button = Button(root, text='Circuit in Order', command=lambda: draw_route_into_graph(dic_routes['correct_order_circuit'], color='red', plot_text='Taxi picks up all Kids and drives to School and back'))
+    show_circuit_right_order_button = Button(root, text='Circuit in Order', command=lambda: draw_route_into_graph(dic_routes['circuit_right_order'], color='red', plot_text='Taxi picks up all Kids and drives to School and back'))
 
     show_circuit_right_order_dijkstras_button = Button(root, text="Circuit in Order Optimised", command=lambda: draw_route_into_graph(dic_routes['hamilton_dijkstras_right_order'], color='red', plot_text='Right Order Optimised with Dijkstras'))
 
