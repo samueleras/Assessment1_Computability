@@ -6,10 +6,7 @@ from tkinter import Tk, Button, Label, Frame, filedialog
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import os
 import shutil
-import numpy as np
 from collections import defaultdict
-import itertools
-from Held_Karp_Algo import tsp
 
 # Dijkstra's Algorithm for shortest path from point A to B without selected pickup points in between
 def find_shortest_path_dijkstras(matrix, start, end):
@@ -53,63 +50,54 @@ def reconstruct_path(came_from, current):
     path.reverse()
     return path
 
-
-# Crisofodis Algorithm break down: 
-# 1. Construct MST: we done it with prims algorithm
-# 2. Identify ODD-Degree Nodes
-# 3. Construct a Minimum Weight perfect matching: done with greedy approach, should be changed into Hungarian
-# 4. Combine MST and Matching
-# 5. Find Eulerian Curcuit
-# 6. Convert Eulerian Curcuit to Hamiltonian Circuit
-# 7. Output the Result (hamiltonian circuit)
+#Create MST with prims
 def prims_algorithm(adj_matrix, selected_points):
-    # Extract the submatrix for the selected points
+    #get submatrix of only selected points, not all nodes in the graph
     matrix_selected_points = adj_matrix.loc[selected_points, selected_points]
 
-    mst_edges = []  # List to store the edges of the MST
-    total_cost = 0  # To keep track of the total cost of the MST
+    mst_edges = []
+    total_cost = 0
 
-    # Start from the first vertex in the selected points
-    start_vertex = selected_points[0]
-    min_heap = [(0, None, start_vertex)]  # weight, previous node, current node
-    visited = set()  # To track visited vertices
+    min_heap = [(0, None, selected_points[0])]  # weight, previous node, current node. Insert first element
+    visited = set()  #track visited vertices
 
     while min_heap:
-        # Get the edge with the minimum weight
+        #ged edge with smallest weight
         weight, prev_node, node = heapq.heappop(min_heap)
 
         if node in visited:
-            continue  # Skip if already visited
+            continue  #skip if visisted
 
-        visited.add(node)  # Mark vertex as visited
-        total_cost += weight  # Update the total cost
+        visited.add(node)  #mark as visited
+        total_cost += weight  #add edgeweight to total cost
 
-        if prev_node is not None:
-            # Append the edge only if it's not the starting node
+        if prev_node is not None:   #check if it is the starting node, if not append it
             mst_edges.append((prev_node, node, weight))
 
         # Add all edges from the current vertex to the priority queue
         for othernode in selected_points:
             if othernode not in visited:
-                edge_weight = matrix_selected_points.loc[node, othernode]  # Access using string labels
-                if pd.notna(edge_weight) and edge_weight > 0:  # Check if the edge is valid
-                    heapq.heappush(min_heap, (edge_weight, node, othernode))  # Push the new edge into the heap
+                edge_weight = matrix_selected_points.loc[node, othernode]  #get weight of othernode to current node
+                if pd.notna(edge_weight) and weight != float('inf') and edge_weight > 0:  #check if edge exists (normaly should as it is interconnected graph)
+                    heapq.heappush(min_heap, (edge_weight, node, othernode))  #push the new edge into the heap
 
     return mst_edges, total_cost
 
 def find_odd_degree_vertices(mst_edges, selected_points):
 
-    # Initialize degree counter for each vertex using a dictionary
+    #create dictionary with counter for each point, init with 0
     vertex_degree = {vertex: 0 for vertex in selected_points}
 
-    # Iterate through all edges in the MST and count the degree of each vertex
+    #for each edge in the mst, increase the edge count for both nodes
     for u, v, weight in mst_edges:
-        # Increase the degree for both vertices connected by the edge
         vertex_degree[u] += 1
         vertex_degree[v] += 1
         
-    # Identify vertices with odd degrees
-    odd_degree_vertices = [vertex for vertex, degree in vertex_degree.items() if degree % 2 == 1]
+    #Check if the vertex has odd degree and add it to list
+    odd_degree_vertices = []
+    for vertex, degree in vertex_degree.items():
+        if degree % 2 == 1: #Checks if degree is odd
+            odd_degree_vertices.append(vertex)
     
     return odd_degree_vertices
 
@@ -681,7 +669,7 @@ def calculate_total_edge_weight(edges):
         total_weight += weight
     return total_weight
 
-# Draw a route onto an existing graph and highlighting it
+#Draw a route onto an existing graph and highlighting it
 def draw_route_into_graph(route, color='orange', plot_text=''):
 
     #Clear current plot
