@@ -103,9 +103,9 @@ def find_odd_degree_vertices(mst_edges, selected_points):
 
 def edmonds_blossom(matrix, odd_vertices, mst_edges):
 
-    def find_augmenting_path(matching, node1, visited, parent, matrix_of_odd_vertices_without_mst_edges):
+    def find_augmenting_path(matching, node1, explored, parent, matrix_of_odd_vertices_without_mst_edges):
         queue = [node1] #Put given node into queue
-        visited[node1] = True   #Set node as visisted
+        explored[node1] = True   #Set node as visisted
 
         while queue:    #Repeat as long as queue is not empty
             currentNode = queue.pop(0)  #Take first item in queue
@@ -119,16 +119,16 @@ def edmonds_blossom(matrix, odd_vertices, mst_edges):
 
             for neighbour, weight in neighbors_and_weights:
                 #Check if neighbour is not visited and edge exists (not inf)
-                if weight != float('inf') and not visited[neighbour]:  
+                if weight != float('inf') and not explored[neighbour]:  
                     parent[neighbour] = currentNode    #Link current node to the neighbour for path reconstruction
                     if matching[neighbour] is None:  #Augmenting path found as the neighbour is not in matching and the current node is also not in matching and it is not in mst
                         return neighbour
-                    visited[neighbour] = True      #Mark neigbour as visisted
+                    explored[neighbour] = True      #Mark neigbour as visisted
                     queue.append(matching[neighbour])   #Neighbour already in matching, but gets added to the queue to check all its neighbours aswell
                                                 #This continues until all nodes are visited and None is returned or until a augmented path is found and returned
         return None
     
-    def augment_path(matching, parent, node):
+    def switch_augmenting_path(matching, parent, node):
         while node is not None:    #v is starting node of an augmented path
             prev = parent[node] #get the neighbour that is linked to the node
             matching[node] = prev  
@@ -155,13 +155,25 @@ def edmonds_blossom(matrix, odd_vertices, mst_edges):
                 matrix_of_odd_vertices_without_mst_edges.iloc[node1, node2] = matrix.iloc[node1, node2]  # Include edge if it's not in the MST
 
     #Augment the matching by finding augmenting paths
-    for node1 in odd_vertices:
-        if matching[node1] is None:  #free vertex
-            visited = [False] * len(matrix)
+    def improve_matching(odd_vertices):
+        #Make list of all exposed vertices (vertices that are not in matchings)
+        exposed_vertices = []
+        for vertex in odd_vertices:
+            if matching[vertex] is None:
+                exposed_vertices.append(vertex)
+        #For every exposed vertice check for augmented path
+        for node1 in exposed_vertices:
+            explored = [False] * len(matrix)
             parent = {}
-            node2 = find_augmenting_path(matching, node1, visited, parent, matrix_of_odd_vertices_without_mst_edges)  #Find augmented path, starting with the unmatched node1
+            node2 = find_augmenting_path(matching, node1, explored, parent, matrix_of_odd_vertices_without_mst_edges)  #Find augmented path, starting with the unmatched node1
             if node2 is not None:
-                augment_path(matching, parent, node2)
+                switch_augmenting_path(matching, parent, node2)
+                return True
+        return False
+    
+    while True:
+        if not improve_matching(odd_vertices):
+            break
 
     # Convert matching dictionary to edge list
     result = []
@@ -172,84 +184,65 @@ def edmonds_blossom(matrix, odd_vertices, mst_edges):
 
     return result
 
-#To check if given edges have even degrees
-# Return True if all even
+# Check if the route has only even degrees vertices
 def has_even_degrees(edges):
-    #Create a Dic that counts all edges on each node
+    # Step 1: Initialize a dictionary to track the degree of each vertex
     degree_count = defaultdict(int)
     
-    #iterate the value of the node
+    # Step 2: Count the degree of each vertex from the edges
     for u, v in edges:
-        degree_count[u] += 1  #Outgoiing edge from u
-        degree_count[v] += 1  #Incoming edge to v
+        degree_count[u] += 1  # Outgoing edge from u
+        degree_count[v] += 1  # Incoming edge to v
     
-    #Check if all vertices have even degrees
+    # Step 3: Check if all vertices have even degrees
     for degree in degree_count.values():
         if degree % 2 != 0:
             return False  # Return False if any vertex has an odd degree
     
     return True  # All vertices have even degrees
 
-#To find the eulerian Circuit use of Hierholzers Algorithm
+# Use of Hierholzer algorithm
 def find_eulerian_circuit(edges, selected_points):
-    #For Debugging
     print("Euler edges: ", edges)
-    #Create a empty list for an adjacency list
-    adj_list = {}
     # Convert graph edges to an adjacency list representation
-    for point in selected_points:
-        adj_list[point] = []
-
-    #Add values to the list
-    for edge in edges:
-        u, v, weight = edge
+    adj_list = {point: [] for point in selected_points}
+    for u, v, weight in edges:
         adj_list[u].append(v)
         adj_list[v].append(u)
 
-    #Function to check if a vertex has any unused edges
+    # Function to check if a vertex has any unused edges
     def has_unused_edges(vertex):
         return len(adj_list[vertex]) > 0
 
-    #Find the Eulerian circuit using Hierholzer's algorithm
+    # Find the Eulerian circuit using Hierholzer's algorithm
     circuit = []
     stack = []
-    current_vertex = selected_points[0]  #Start with the first point in the list
+    current_vertex = selected_points[0]  # Start at an arbitrary vertex
 
     while stack or has_unused_edges(current_vertex):
         if has_unused_edges(current_vertex):
-            #If the current vertex has unused edges add it to the stack
             stack.append(current_vertex)
-
-            #Move to one of its neighbors and remove the edge from the graph
-            next_vertex = adj_list[current_vertex].pop()  #Take one neighbor
-            adj_list[next_vertex].remove(current_vertex)  #Remove the edge in both directions
-            current_vertex = next_vertex  #Update the current vertex
+            next_vertex = adj_list[current_vertex].pop()  # Take an unused edge
+            adj_list[next_vertex].remove(current_vertex)  # Remove reverse edge
+            current_vertex = next_vertex
         else:
-            #If the current vertex has no unused edges, add it to the circuit
             circuit.append(current_vertex)
-
-            # Backtrack to the last saved vertex
             current_vertex = stack.pop()
 
-    #The circuit is built in reverse order, so reverse it to get the correct order
-    circuit.reverse()
+    # The circuit is constructed in reverse, so we reverse it
     return circuit
 
 def eulerian_to_hamiltonian(eulerian_circuit):
-    #Keep track of nodes we already visited
+    # Set to keep track of visited nodes
     visited = set()
     hamiltonian_circuit = []
     
     for vertex in eulerian_circuit:
-        #If we haven't visited this node yet
         if vertex not in visited:
-            #Add it to the Hamiltonian circuit
             hamiltonian_circuit.append(vertex)
-            #Mark it as visited
             visited.add(vertex)
     
     return hamiltonian_circuit
-
 
 def finding_circular_route_in_right_order(matrix, selected_points):
     """
@@ -260,70 +253,81 @@ def finding_circular_route_in_right_order(matrix, selected_points):
     4. Add the return path from school to the taxi.
     """
     def find_nearest_kid(matrix, taxi_index, kids_indices):
-        #Start with no nearest kid and a very high weight
+        """Find the nearest kid to the taxi based on weight."""
         smallest_weight = float('inf')
         nearest_kid = None
         best_route = None
 
-        #Go through each kid to find the closest one
         for kid in index_to_char(kids_indices):
-            #Create a route from the taxi to this kid
             route = [(index_to_char(taxi_index), kid)]
-            #Calculate the total weight of this route
             route_weight = calculate_total_edge_weight(route)
-            #If this route is shorter, update the nearest kid and best route
             if route_weight < smallest_weight:
                 smallest_weight = route_weight
                 nearest_kid = kid
                 best_route = route
 
         return nearest_kid, smallest_weight, best_route
-
     
     def determine_best_route(circuit_kids, nearest_kid, school_index, taxi_kid_route, taxi_index):
 
+        print("DEBUG: Starting determine_best_route...")
         best_route = None
-        min_weight = float('inf')  # Start with the maximum possible weight
+        min_weight = float('inf')  # Initialize the best weight as infinity
 
-        #Get the position of the nearest kid in the circuit
+        # Debugging input details
+        print("DEBUG: Circuit kids:", circuit_kids)
+        print("DEBUG: Nearest kid:", nearest_kid)
+        print("DEBUG: Taxi kid route:", taxi_kid_route)
+        print("DEBUG: Taxi:", index_to_char(taxi_index))
+        print("DEBUG: School:", index_to_char(school_index))
+
         nearest_kid_index = circuit_kids.index(nearest_kid)
 
-        #kids clockwise starting from the nearest kid
+        # Clockwise arrangement
         clockwise_list = circuit_kids[nearest_kid_index:] + circuit_kids[:nearest_kid_index]
-        print("Clockwise order:", clockwise_list)
-
-        #kids counterclockwise starting from the nearest kid
+        print("DEBUG: Clockwise list:", clockwise_list)
+        
+        # Counterclockwise arrangement
         counterclockwise_list = circuit_kids[nearest_kid_index::-1] + circuit_kids[:nearest_kid_index:-1]
-        print("Counterclockwise order:", counterclockwise_list)
+        print("DEBUG: Counterclockwise list:", counterclockwise_list)
 
-        #Test both directions to find the best route
+        # Iterate through both directions
         directions = [clockwise_list, counterclockwise_list]
+        
 
         for direction in directions:
+            print("DEBUG: Evaluating direction:", direction)
 
-            #Get the last kid in this route
+            # Get the last kid in the direction
             last_kid = direction[-1]
-            # Create the route from the last kid to the school
-            last_kid_school_route = [(last_kid, index_to_char(school_index))]
-            # Combine the complete route: taxi to kids, kids, last kid to school
-            route = taxi_kid_route + direction + last_kid_school_route
-            # Convert the route into edges
-            route_edges = convert_to_edges(route)
-            # Calculate the total weight (distance) of the route
-            total_weight = calculate_total_edge_weight(route_edges)
-            print("Route with weight: ",route_edges, total_weight)
+            print("DEBUG: Last kid in this direction:", last_kid)
 
-            #If this route is shorter, save it as the best route
+            # Find the route from the last kid to the school
+            last_kid_school_route = [(last_kid, index_to_char(school_index))]
+            print("DEBUG: Last kid to school route:", last_kid_school_route)
+
+            # Form the complete route
+            route = taxi_kid_route + direction + last_kid_school_route
+            print("DEBUG: Complete route:", route)
+
+            # Convert route to edges of route
+            route_edges = convert_to_edges(route)
+            print("DEBUG: Route Edges:", route_edges)
+
+            # Calculate the total weight of the route
+            total_weight = calculate_total_edge_weight(route_edges)
+            print("DEBUG: Total weight of route:", total_weight)
+
+            # Update the best route if this one is better
             if total_weight < min_weight:
-                print("Found a shorter route with weight:", total_weight)
+                print("DEBUG: Found a new best route with weight:", total_weight)
                 min_weight = total_weight
                 best_route = route_edges
 
-        #Final best route and its weight
-        print("Best route chosen:", best_route, min_weight)
+        print("DEBUG: Best route found:", best_route)
+        print("DEBUG: Best route weight:", min_weight)
 
         return best_route, min_weight
-
 
 
     taxi_index, school_index, kids_indices = get_selected_points(selected_points)
@@ -331,29 +335,28 @@ def finding_circular_route_in_right_order(matrix, selected_points):
     #If there is only 1 kid, there is no need for this procedure, return path right away
     if len(kids_indices) == 1:
         circuit_taxi_kids_school = convert_to_edges([index_to_char(taxi_index), index_to_char(kids_indices[0]), index_to_char(school_index), index_to_char(taxi_index)])
-        print("Best route found:", circuit_taxi_kids_school)
+        print("DEBUG: Best route found:", circuit_taxi_kids_school)
         return circuit_taxi_kids_school
 
-    #Step 1: Create a circular route for the kids
+    # Step 1: Create a circular route for the kids
     mst_edges, multigraph_edges_with_weights, euler_tour, circuit_kids = find_circular_route(matrix, index_to_char(kids_indices))
     circuit_kids = circuit_kids[:-1]
     print("Circuit kids removed last:", circuit_kids)
 
-    #Step 2: Find the nearest kid to the taxi
+    # Step 2: Find the nearest kid to the taxi
     nearest_kid, smallest_weight_taxi_kid, fastest_taxi_kid_route = find_nearest_kid(matrix, taxi_index, kids_indices)
     print(f"The nearest kid is: {nearest_kid} with weight: {smallest_weight_taxi_kid}")
 
-    #Step 3: Determine the shorter direction and calculate the best route
+    # Step 3: Determine the shorter direction and calculate the best route
     best_route, best_weight = determine_best_route(circuit_kids, nearest_kid, school_index, fastest_taxi_kid_route, taxi_index)
     print("Best route:", best_route)
     print("Best route weight:", best_weight)
 
-    #Step 4: Add the way back to the taxi from the school
+    # Step 4: Add the way back to the taxi from the school
     circuit_taxi_kids_school = best_route + [(index_to_char(school_index), index_to_char(taxi_index))]
 
     return circuit_taxi_kids_school
 
-#Helper Function to remove consecutive duplicates
 def remove_consecutive_duplicates_in_edge_list(lst):
     if not lst:
         return []
@@ -407,11 +410,11 @@ def find_circular_route(matrix, selected_points):
 
     return mst_edges, multigraph_edges_with_weights, euler_tour, hamiltonian_circuit
 
-#Use of dijerka on each edge to find a shortcut
 def find_shortcut_route(matrix, route):
+    # Check if the edges have shortcuts with dijerkas
     edges = convert_to_edges(route)
 
-    #Store the found shortcuts
+    # Store the found shortcuts
     edge_shortcuts = []
     for edge in edges:
         start, end = edge
@@ -420,30 +423,29 @@ def find_shortcut_route(matrix, route):
         for node in shortcut:
             edge_shortcuts.append(node)
     
-    #Remove consecutive duplicate elements from edge_shortcuts
+    # Remove consecutive duplicate elements from edge_shortcuts
     result_shortcut_route = remove_consecutive_duplicates_in_edge_list(edge_shortcuts)
 
     return result_shortcut_route
 
-#Function to convert characters A-Z to indices 0-25
+# Function to convert characters A-Z to indices 0-25
 def char_to_index(char):
     if type(char) == str:
         return ord(char.upper()) - ord('A')
     else:
         return [ord(c.upper()) - ord('A') for c in char]
 
-#Function to convert indices 0-25 to characters A-Z
+# Function to convert indices 0-25 to characters A-Z
 def index_to_char(index_list):
     if type(index_list) == int:
         return chr(index_list + ord('A'))
     else:
         return [chr(index + ord('A')) for index in index_list]
 
-#Function to get the selected points by splitting them up
 def get_selected_points(selected_points):
     start_point = selected_points[0]
     end_point = selected_points[1]
-    pickup_points = selected_points[2:]  #Remaining points must be pickup/drop-off points
+    pickup_points = selected_points[2:]  # Remaining points are pickup/drop-off points
 
     print(f"Start point: {start_point}")
     print(f"End point: {end_point}")
@@ -452,22 +454,20 @@ def get_selected_points(selected_points):
     else:
         print("No pickup/drop-off points selected.")
 
-    #Validate input points
+    # Validate input points
     all_points = [start_point] + pickup_points + [end_point]
     for point in all_points:
         if point not in G.nodes:
             print(f"Warning: Node '{point}' is not in the graph.")
-            exit(1)  #Exit if an invalid node is found
+            exit(1)  # Exit if an invalid node is found
             
-    #Convert characters to indices
+    # Convert characters to indices
     start_point = char_to_index(start_point)
     pickup_points = [char_to_index(char) for char in pickup_points]
     end_point = char_to_index(end_point)
     
     return start_point, end_point, pickup_points
 
-#Main function to calculate the path
-#Decide here which approach should be taken
 def calculate_path():
     global calculation_started
     #Do nothing if no points are selected
@@ -510,7 +510,7 @@ def initialize_variables():
     global selected_points, selection_finished, selected_modus, dic_routes, calculation_started
     selected_modus = globals().get('selected_modus', 'route') #Init modus to route if it is not already set
     selected_points = []
-    selection_finished = False  #Flag to indicate selection is finished
+    selection_finished = False  # Flag to indicate selection is finished
     dic_routes = {} # Store all calculated paths
     calculation_started = False
 
@@ -622,28 +622,33 @@ def plot_graph():
         plt.title('Select Start and End')
     plt.draw()
 
-#Convert to edges that are drawable for networkx
+# Convert to edges that are drawable for networkx
 def convert_to_edges(route):
-    #Valid route inputs:
-    #[(A, B, weight), (B, C, weight)]
-    #[(A, B), (B, C)]
-    #['A', 'B', 'C', 'D']
-    #can also be combination of all of them
+    """
+    Convert a mixed-format route into a list of edges in the format [(A, B), (B, C), (C, D)].
 
-    edges = []  #Store the final list of edges
-    previous_node = None  #To connect lonely nodes
+    Parameters:
+    - route (list): A route that could be in a mix of the following formats:
+        1. [(A, B, weight), (B, C, weight)] - with weights
+        2. [(A, B), (B, C)] - without weights
+        3. ['A', 'B', 'C', 'D'] - a list of nodes
+        4. A combination of the above formats
+
+    Returns:
+    - edges (list): A cleaned list of edges in the format [(A, B), (B, C), (C, D)].
+    """
+    edges = []  # Store the final list of edges
+    previous_node = None  # To connect isolated nodes
     
     for element in route:
-        #Check if it is a tuple input
         if isinstance(element, tuple):
-            #Check if it is the right format
+            # Handle cases (1) and (2)
             if len(element) >= 2:
                 edges.append((element[0], element[1]))
             else:
                 raise ValueError("Tuple elements must have at least 2 values (A, B).")
-        #check if it is string input
         elif isinstance(element, str):
-            #Handle isolated nodes
+            # Handle isolated nodes
             if previous_node is not None:
                 edges.append((previous_node, element))
             previous_node = element
@@ -652,29 +657,21 @@ def convert_to_edges(route):
 
     return edges
 
-#To convert edges [('A','B')] to ['A','B']
 def convert_edges_to_route(edges):
     route = []
     for n in range(len(edges)):
-        #Get start and end from edge
         start, end = edges[n]
-        #Append always the first node
         route.append(start)
-    #At the end append also the last node
     route.append(edges[-1][1])
     return route
-
-#To get the total weight of given edges
+    
 def calculate_total_edge_weight(edges):
     if not edges:
         return 0
-    #Make sure the edges are edges
     edges = convert_to_edges(edges)
-    #Variable to store the weight
     total_weight = 0
     for edge in edges:
         start, end = edge
-        #Get the weight from the matrix
         weight = adj_matrix[start][end]
         total_weight += weight
     return total_weight
