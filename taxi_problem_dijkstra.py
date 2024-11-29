@@ -56,10 +56,9 @@ def prims_algorithm(adj_matrix, selected_points):
     matrix_selected_points = adj_matrix.loc[selected_points, selected_points]
 
     mst_edges = []
-    total_cost = 0
-
     min_heap = [(0, None, selected_points[0])]  # weight, previous node, current node. Insert first element
-    visited = set()  #track visited vertices
+    visited = []  #track visited vertices
+    total_cost = 0
 
     while min_heap:
         #ged edge with smallest weight
@@ -68,7 +67,7 @@ def prims_algorithm(adj_matrix, selected_points):
         if node in visited:
             continue  #skip if visisted
 
-        visited.add(node)  #mark as visited
+        visited.append(node)  #mark as visited
         total_cost += weight  #add edgeweight to total cost
 
         if prev_node is not None:   #check if it is the starting node, if not append it
@@ -78,8 +77,7 @@ def prims_algorithm(adj_matrix, selected_points):
         for othernode in selected_points:
             if othernode not in visited:
                 edge_weight = matrix_selected_points.loc[node, othernode]  #get weight of othernode to current node
-                if pd.notna(edge_weight) and weight != float('inf') and edge_weight > 0:  #check if edge exists (normaly should as it is interconnected graph)
-                    heapq.heappush(min_heap, (edge_weight, node, othernode))  #push the new edge into the heap
+                heapq.heappush(min_heap, (edge_weight, node, othernode))  #push the new edge into the heap
 
     return mst_edges, total_cost
 
