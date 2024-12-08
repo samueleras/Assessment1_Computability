@@ -2,7 +2,7 @@ import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
 import heapq
-from tkinter import Tk, Button, Label, Frame, filedialog
+from tkinter import Tk, Button, Frame, filedialog
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import os
 import shutil
@@ -41,7 +41,7 @@ def find_shortest_path_dijkstras(matrix, start, end):
     best_route = index_to_char(best_route)
     return best_route
 
-# Helper function to reconstruct the path
+#Helper function to reconstruct the path
 def reconstruct_path(came_from, current):
     path = [current]
     while current in came_from:
@@ -73,7 +73,7 @@ def prims_algorithm(adj_matrix, selected_points):
         if prev_node is not None:   #check if it is the starting node, if not append it
             mst_edges.append((prev_node, node, weight))
 
-        # Add all edges from the current vertex to the priority queue
+        #Add all edges from the current vertex to the priority queue
         for othernode in selected_points:
             if othernode not in visited:
                 edge_weight = matrix_selected_points.loc[node, othernode]  #get weight of othernode to current node
@@ -127,7 +127,7 @@ def edmonds_blossom(matrix, odd_vertices, mst_edges):
         return None
     
     def switch_augmenting_path(matching, parent, node):
-        while node is not None:    #v is starting node of an augmented path
+        while node is not None:    #node is starting node of an augmented path
             prev = parent[node] #get the neighbour that is linked to the node
             matching[node] = prev  
             matching[prev] = node  #flipping the matching status of both
@@ -173,7 +173,7 @@ def edmonds_blossom(matrix, odd_vertices, mst_edges):
         if not improve_matching(odd_vertices):
             break
 
-    # Convert matching dictionary to edge list
+    #Convert matching dictionary to edge list
     result = []
     for node1, node2 in matching.items():
         if node1 < node2:  #no duplicates as in matchings there are both directions of the edge
@@ -184,54 +184,52 @@ def edmonds_blossom(matrix, odd_vertices, mst_edges):
 
 # Check if the route has only even degrees vertices
 def has_even_degrees(edges):
-    # Step 1: Initialize a dictionary to track the degree of each vertex
+    #dictionary to track the degree of each vertex
     degree_count = defaultdict(int)
     
-    # Step 2: Count the degree of each vertex from the edges
+    #Count the degree of each vertex from the edges
     for u, v in edges:
         degree_count[u] += 1  # Outgoing edge from u
         degree_count[v] += 1  # Incoming edge to v
     
-    # Step 3: Check if all vertices have even degrees
+    #Check if all vertices have even degrees
     for degree in degree_count.values():
         if degree % 2 != 0:
-            return False  # Return False if any vertex has an odd degree
+            return False  #False if any vertex has an odd degree
     
-    return True  # All vertices have even degrees
+    return True
 
-# Use of Hierholzer algorithm
 def find_eulerian_circuit(edges, selected_points):
     print("Euler edges: ", edges)
-    # Convert graph edges to an adjacency list representation
+    # onvert graph edges to an adjacency list representation
     adj_list = {point: [] for point in selected_points}
     for u, v, weight in edges:
         adj_list[u].append(v)
         adj_list[v].append(u)
 
-    # Function to check if a vertex has any unused edges
+    #Function to check if a vertex has any unused edges
     def has_unused_edges(vertex):
         return len(adj_list[vertex]) > 0
 
-    # Find the Eulerian circuit using Hierholzer's algorithm
+    #Find the Eulerian circuit using Hierholzer's algorithm
     circuit = []
     stack = []
-    current_vertex = selected_points[0]  # Start at an arbitrary vertex
+    current_vertex = selected_points[0]  #Start at an arbitrary vertex
 
     while stack or has_unused_edges(current_vertex):
         if has_unused_edges(current_vertex):
             stack.append(current_vertex)
-            next_vertex = adj_list[current_vertex].pop()  # Take an unused edge
-            adj_list[next_vertex].remove(current_vertex)  # Remove reverse edge
+            next_vertex = adj_list[current_vertex].pop()  #Take an unused edge
+            adj_list[next_vertex].remove(current_vertex)  #Remove reverse edge
             current_vertex = next_vertex
         else:
             circuit.append(current_vertex)
             current_vertex = stack.pop()
 
-    # The circuit is constructed in reverse, so we reverse it
     return circuit
 
 def eulerian_to_hamiltonian(eulerian_circuit):
-    # Set to keep track of visited nodes
+    #Set to keep track of visited nodes
     visited = set()
     hamiltonian_circuit = []
     
@@ -243,13 +241,7 @@ def eulerian_to_hamiltonian(eulerian_circuit):
     return hamiltonian_circuit
 
 def finding_circular_route_in_right_order(matrix, selected_points):
-    """
-    Steps:
-    1. Create a circuit only among the kids.
-    2. Find the nearest kid to the taxi.
-    3. Determine the shorter direction (clockwise or counterclockwise) for the kids' circuit.
-    4. Add the return path from school to the taxi.
-    """
+
     def find_nearest_kid(matrix, taxi_index, kids_indices):
         """Find the nearest kid to the taxi based on weight."""
         smallest_weight = float('inf')
@@ -270,7 +262,7 @@ def finding_circular_route_in_right_order(matrix, selected_points):
 
         print("DEBUG: Starting determine_best_route...")
         best_route = None
-        min_weight = float('inf')  # Initialize the best weight as infinity
+        min_weight = float('inf')  #Initialize the best weight as infinity
 
         # Debugging input details
         print("DEBUG: Circuit kids:", circuit_kids)
@@ -281,15 +273,15 @@ def finding_circular_route_in_right_order(matrix, selected_points):
 
         nearest_kid_index = circuit_kids.index(nearest_kid)
 
-        # Clockwise arrangement
+        #Clockwise arrangement
         clockwise_list = circuit_kids[nearest_kid_index:] + circuit_kids[:nearest_kid_index]
         print("DEBUG: Clockwise list:", clockwise_list)
         
-        # Counterclockwise arrangement
+        #Counterclockwise arrangement
         counterclockwise_list = circuit_kids[nearest_kid_index::-1] + circuit_kids[:nearest_kid_index:-1]
         print("DEBUG: Counterclockwise list:", counterclockwise_list)
 
-        # Iterate through both directions
+        #Iterate through both directions
         directions = [clockwise_list, counterclockwise_list]
         
 
@@ -336,21 +328,21 @@ def finding_circular_route_in_right_order(matrix, selected_points):
         print("DEBUG: Best route found:", circuit_taxi_kids_school)
         return circuit_taxi_kids_school
 
-    # Step 1: Create a circular route for the kids
+    #Create a circular route for the kids
     mst_edges, multigraph_edges_with_weights, euler_tour, circuit_kids = find_circular_route(matrix, index_to_char(kids_indices))
     circuit_kids = circuit_kids[:-1]
     print("Circuit kids removed last:", circuit_kids)
 
-    # Step 2: Find the nearest kid to the taxi
+    #Find the nearest kid to the taxi
     nearest_kid, smallest_weight_taxi_kid, fastest_taxi_kid_route = find_nearest_kid(matrix, taxi_index, kids_indices)
     print(f"The nearest kid is: {nearest_kid} with weight: {smallest_weight_taxi_kid}")
 
-    # Step 3: Determine the shorter direction and calculate the best route
+    #Determine the shorter direction and calculate the best route
     best_route, best_weight = determine_best_route(circuit_kids, nearest_kid, school_index, fastest_taxi_kid_route, taxi_index)
     print("Best route:", best_route)
     print("Best route weight:", best_weight)
 
-    # Step 4: Add the way back to the taxi from the school
+    #Add the way back to the taxi from the school
     circuit_taxi_kids_school = best_route + [(index_to_char(school_index), index_to_char(taxi_index))]
 
     return circuit_taxi_kids_school
@@ -409,10 +401,10 @@ def find_circular_route(matrix, selected_points):
     return mst_edges, multigraph_edges_with_weights, euler_tour, hamiltonian_circuit
 
 def find_shortcut_route(matrix, route):
-    # Check if the edges have shortcuts with dijerkas
+    #Check if the edges have shortcuts with dijerkas
     edges = convert_to_edges(route)
 
-    # Store the found shortcuts
+    #Store the found shortcuts
     edge_shortcuts = []
     for edge in edges:
         start, end = edge
@@ -421,19 +413,19 @@ def find_shortcut_route(matrix, route):
         for node in shortcut:
             edge_shortcuts.append(node)
     
-    # Remove consecutive duplicate elements from edge_shortcuts
+    #Remove consecutive duplicate elements from edge_shortcuts
     result_shortcut_route = remove_consecutive_duplicates_in_edge_list(edge_shortcuts)
 
     return result_shortcut_route
 
-# Function to convert characters A-Z to indices 0-25
+#Function to convert characters A-Z to indices 0-25
 def char_to_index(char):
     if type(char) == str:
         return ord(char.upper()) - ord('A')
     else:
         return [ord(c.upper()) - ord('A') for c in char]
 
-# Function to convert indices 0-25 to characters A-Z
+#Function to convert indices 0-25 to characters A-Z
 def index_to_char(index_list):
     if type(index_list) == int:
         return chr(index_list + ord('A'))
@@ -452,14 +444,14 @@ def get_selected_points(selected_points):
     else:
         print("No pickup/drop-off points selected.")
 
-    # Validate input points
+    #Validate input points
     all_points = [start_point] + pickup_points + [end_point]
     for point in all_points:
         if point not in G.nodes:
             print(f"Warning: Node '{point}' is not in the graph.")
             exit(1)  # Exit if an invalid node is found
             
-    # Convert characters to indices
+    #Convert characters to indices
     start_point = char_to_index(start_point)
     pickup_points = [char_to_index(char) for char in pickup_points]
     end_point = char_to_index(end_point)
@@ -605,7 +597,7 @@ def change_mode():
         plt.title('Select Taxi, School, and pickup/drop-off points') #Set title
         plt.draw()
 
-# Function to plot the graph
+#Function to plot the graph
 def plot_graph():
     global pos
     ax.clear()
@@ -620,27 +612,15 @@ def plot_graph():
         plt.title('Select Start and End')
     plt.draw()
 
-# Convert to edges that are drawable for networkx
+#Convert to edges that are drawable for networkx
 def convert_to_edges(route):
-    """
-    Convert a mixed-format route into a list of edges in the format [(A, B), (B, C), (C, D)].
 
-    Parameters:
-    - route (list): A route that could be in a mix of the following formats:
-        1. [(A, B, weight), (B, C, weight)] - with weights
-        2. [(A, B), (B, C)] - without weights
-        3. ['A', 'B', 'C', 'D'] - a list of nodes
-        4. A combination of the above formats
-
-    Returns:
-    - edges (list): A cleaned list of edges in the format [(A, B), (B, C), (C, D)].
-    """
     edges = []  # Store the final list of edges
     previous_node = None  # To connect isolated nodes
     
     for element in route:
         if isinstance(element, tuple):
-            # Handle cases (1) and (2)
+            #Handle cases 1 and 2
             if len(element) >= 2:
                 edges.append((element[0], element[1]))
             else:
@@ -653,6 +633,7 @@ def convert_to_edges(route):
         else:
             raise ValueError(f"Invalid route element type: {type(element)}")
 
+    #returns cleaned list of edges in required format [(A, B), (B, C)]
     return edges
 
 def convert_edges_to_route(edges):
